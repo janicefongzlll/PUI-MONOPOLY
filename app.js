@@ -11,22 +11,22 @@ const properties = [
   [30, "Pyramids of Giza", 440, 46, "#e57e5b"], [31, "Neuschwanstein Castle", 460, 48, "#a66e48"],
   [32, "Mount Fuji", 480, 50, "#5faed2"], [33, "Great Wall of China", 500, 52, "#8a73d5"],
   [34, "Hagia Sophia", 520, 54, "#dc9c4d"], [35, "Grand Canyon", 560, 58, "#ec6671"]
-].map(([position, name, price, rent, color]) => ({ position, name, price, rent, color, owner: null, building: false }));
+].map(([position, name, price, rent, color], art) => ({ position, name, price, rent, color, art, owner: null, building: false }));
 
 const propertyAt = Object.fromEntries(properties.map(p => [p.position, p]));
 const spaces = [
-  { type: "start", name: "Start", label: "Collect $200", icon: "i-flag" }, propertyAt[1],
-  { type: "chance", name: "Chance", label: "Draw a city card", icon: "i-card" }, propertyAt[3],
-  { type: "tax", name: "Income Tax", label: "Pay $100", icon: "i-bank", amount: 100 }, propertyAt[5],
-  { type: "station", name: "Transit Station", label: "Ride for $40", icon: "i-train" }, propertyAt[7],
-  { type: "chance", name: "Chance", label: "Draw a city card", icon: "i-card" },
-  { type: "jail", name: "Jail", label: "Just Visiting", icon: "i-lock" }, propertyAt[10], propertyAt[11], propertyAt[12],
-  { type: "tax", name: "City Maintenance", label: "Pay $50", icon: "i-bank", amount: 50 },
-  { type: "chance", name: "Chance", label: "Draw a city card", icon: "i-card" }, propertyAt[15],
-  { type: "station", name: "Transit Station", label: "Ride for $40", icon: "i-train" }, propertyAt[17],
-  { type: "parking", name: "Free Parking", label: "Take a breather", icon: "i-park" }, propertyAt[19],
-  { type: "chance", name: "Chance", label: "Draw a city card", icon: "i-card" }, propertyAt[21], propertyAt[22], propertyAt[23], propertyAt[24], propertyAt[25], propertyAt[26],
-  { type: "go-jail", name: "Go to Jail", label: "Do not pass Start", icon: "i-lock" }, propertyAt[28], propertyAt[29], propertyAt[30], propertyAt[31], propertyAt[32], propertyAt[33], propertyAt[34], propertyAt[35]
+  { type: "start", name: "Start", label: "Collect $200", art: 24 }, propertyAt[1],
+  { type: "chance", name: "Chance", label: "Draw a city card", art: 25 }, propertyAt[3],
+  { type: "tax", name: "Income Tax", label: "Pay $100", art: 26, amount: 100 }, propertyAt[5],
+  { type: "station", name: "Transit Station", label: "Ride for $40", art: 27 }, propertyAt[7],
+  { type: "chance", name: "Chance", label: "Draw a city card", art: 25 },
+  { type: "jail", name: "Jail", label: "Just Visiting", art: 29 }, propertyAt[10], propertyAt[11], propertyAt[12],
+  { type: "tax", name: "City Maintenance", label: "Pay $50", art: 26, amount: 50 },
+  { type: "chance", name: "Chance", label: "Draw a city card", art: 25 }, propertyAt[15],
+  { type: "station", name: "Transit Station", label: "Ride for $40", art: 27 }, propertyAt[17],
+  { type: "parking", name: "Free Parking", label: "Take a breather", art: 28 }, propertyAt[19],
+  { type: "chance", name: "Chance", label: "Draw a city card", art: 25 }, propertyAt[21], propertyAt[22], propertyAt[23], propertyAt[24], propertyAt[25], propertyAt[26],
+  { type: "go-jail", name: "Go to Jail", label: "Do not pass Start", art: 30 }, propertyAt[28], propertyAt[29], propertyAt[30], propertyAt[31], propertyAt[32], propertyAt[33], propertyAt[34], propertyAt[35]
 ];
 
 const playerColors = ["#ef4a54", "#1769aa", "#8e5ee4", "#e27719", "#138c73", "#be3372"];
@@ -297,11 +297,12 @@ function renderBoard() {
     const [row, col] = posToGrid(pos);
     const propertyClass = isProperty(space) ? `space-property ${space.owner !== null ? `owned owner-${space.owner}` : ""} ${space.building ? "has-building" : ""}` : "";
     const typeClass = `space ${space.type || "property"} ${propertyClass} ${[0,9,18,27].includes(pos) ? "corner" : ""}`;
+    const kind = isProperty(space) ? "Landmark" : ({ start: "Start", chance: "Chance", tax: "Tax", station: "Transit", jail: "Jail", parking: "Rest", "go-jail": "Jail" }[space.type] || "City");
     const propertyBits = isProperty(space) ? `<span>${money(space.price)}</span><span>${money(space.rent)} rent</span>` : `<span>${space.label}</span>`;
     const tokens = state.players.filter(p => p.position === pos).map(p => `<button class="token ${p.jailed ? "jailed" : ""} ${p.id === state.currentPlayer && state.phase === "choose" ? "token-active" : ""}" type="button" data-player-id="${p.id}" style="--token-color:${p.color}" aria-label="${escapeHtml(p.name)}, the ${p.animal.name}${p.jailed ? ", is in Jail" : ""}${p.id === state.currentPlayer && state.phase === "choose" ? ". Choose movement" : ""}" title="${escapeHtml(p.name)} · ${p.animal.name}">${p.animal.icon}</button>`).join("");
     return `<article class="${typeClass}" style="grid-row:${row};grid-column:${col};${isProperty(space) ? `--space-color:${space.color};` : ""}" role="gridcell" aria-label="${escapeHtml(space.name)}${isProperty(space) ? `, price ${money(space.price)}, rent ${money(space.rent)}` : `, ${space.label}`}">
-      <div class="space-top"><span class="space-index">${String(pos).padStart(2, "0")}</span>${icon(space.icon || "i-build")}</div>
-      <strong class="space-name">${escapeHtml(space.name)}</strong><div class="space-meta">${propertyBits}</div><i class="building-mini" aria-hidden="true"></i><div class="token-rack" aria-label="Players on ${escapeHtml(space.name)}">${tokens}</div>
+      <div class="space-top"><span class="space-index">${String(pos).padStart(2, "0")}</span><span class="space-kind">${kind}</span></div>
+      <span class="space-art" style="--art-col:${space.art % 6};--art-row:${Math.floor(space.art / 6)}" aria-hidden="true"></span><strong class="space-name">${escapeHtml(space.name)}</strong><div class="space-meta">${propertyBits}</div><i class="building-mini" aria-hidden="true"></i><div class="token-rack" aria-label="Players on ${escapeHtml(space.name)}">${tokens}</div>
     </article>`;
   }).join("");
   board.innerHTML = `${cells}<section class="city-center" aria-label="City Fortune"><div class="city-skyline" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="center-content"><p class="eyebrow">Buy · trade · build</p><h1 class="center-title">CITY<span>FORTUNE</span></h1><p class="center-subtitle">The race to own the world's landmarks</p></div></section>`;
