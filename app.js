@@ -1,16 +1,16 @@
 const properties = [
-  [1, "Mosaic Mews", 80, 10, "#f4b942"], [3, "Juniper Lofts", 100, 12, "#e68463"],
-  [5, "Paper Lantern Court", 120, 14, "#d57cc8"], [7, "Crescent Market", 140, 16, "#9a86ea"],
-  [10, "Foundry Lane", 160, 18, "#75bfbe"], [11, "Pulse Café Row", 180, 20, "#5bb486"],
-  [12, "Azure Alley", 200, 22, "#62a5e1"], [15, "Lantern Opera", 220, 24, "#f0808c"],
-  [17, "Mapletop Terrace", 240, 26, "#c3a268"], [19, "Northline Arcade", 260, 28, "#7db664"],
-  [21, "Meridian Library", 280, 30, "#ca8cdb"], [22, "Solstice Square", 300, 32, "#e8b340"],
-  [23, "Studio District", 320, 34, "#76a9da"], [24, "Harbor Glassworks", 340, 36, "#61c4b2"],
-  [25, "Skyline Boulevard", 360, 38, "#d17698"], [26, "Rosewood Heights", 380, 40, "#ee9172"],
-  [28, "Lotus Garden Walk", 400, 42, "#93b957"], [29, "Summit Exchange", 420, 44, "#7672d6"],
-  [30, "Beacon Theatre", 440, 46, "#e57e5b"], [31, "Copper Tower", 460, 48, "#a66e48"],
-  [32, "Riverlight Quay", 480, 50, "#5faed2"], [33, "Astral Observatory", 500, 52, "#8a73d5"],
-  [34, "Crownspire Plaza", 520, 54, "#dc9c4d"], [35, "Grand Avenue", 560, 58, "#ec6671"]
+  [1, "Taipei 101", 80, 10, "#f4b942"], [3, "Petronas Twin Towers", 100, 12, "#e68463"],
+  [5, "Marina Bay Sands", 120, 14, "#d57cc8"], [7, "Burj Khalifa", 140, 16, "#9a86ea"],
+  [10, "Eiffel Tower", 160, 18, "#75bfbe"], [11, "Sagrada Família", 180, 20, "#5bb486"],
+  [12, "Colosseum", 200, 22, "#62a5e1"], [15, "Big Ben", 220, 24, "#f0808c"],
+  [17, "Acropolis", 240, 26, "#c3a268"], [19, "Christ the Redeemer", 260, 28, "#7db664"],
+  [21, "Machu Picchu", 280, 30, "#ca8cdb"], [22, "Taj Mahal", 300, 32, "#e8b340"],
+  [23, "Angkor Wat", 320, 34, "#76a9da"], [24, "Sydney Opera House", 340, 36, "#61c4b2"],
+  [25, "Golden Gate Bridge", 360, 38, "#d17698"], [26, "Statue of Liberty", 380, 40, "#ee9172"],
+  [28, "Moai of Rapa Nui", 400, 42, "#93b957"], [29, "Chichén Itzá", 420, 44, "#7672d6"],
+  [30, "Pyramids of Giza", 440, 46, "#e57e5b"], [31, "Neuschwanstein Castle", 460, 48, "#a66e48"],
+  [32, "Mount Fuji", 480, 50, "#5faed2"], [33, "Great Wall of China", 500, 52, "#8a73d5"],
+  [34, "Hagia Sophia", 520, 54, "#dc9c4d"], [35, "Grand Canyon", 560, 58, "#ec6671"]
 ].map(([position, name, price, rent, color]) => ({ position, name, price, rent, color, owner: null, building: false }));
 
 const propertyAt = Object.fromEntries(properties.map(p => [p.position, p]));
@@ -30,6 +30,10 @@ const spaces = [
 ];
 
 const playerColors = ["#ef4a54", "#1769aa", "#8e5ee4", "#e27719", "#138c73", "#be3372"];
+const playerAnimals = [
+  { icon: "🐯", name: "Tiger" }, { icon: "🐼", name: "Panda" }, { icon: "🦊", name: "Fox" },
+  { icon: "🦁", name: "Lion" }, { icon: "🐸", name: "Frog" }, { icon: "🦉", name: "Owl" }
+];
 const chanceCards = [
   { title: "Street festival", text: "Your pop-up festival is a hit. Collect $120.", effect: "cash", amount: 120 },
   { title: "Permit review", text: "A permit needs another stamp. Pay $75.", effect: "cash", amount: -75 },
@@ -40,7 +44,7 @@ const chanceCards = [
   { title: "Transit pass", text: "Move to the nearest Transit Station. No fee this ride.", effect: "nearestStation" },
   { title: "City security pass", text: "Keep this card. It gets your group out of Jail free.", effect: "jailPass" },
   { title: "Noise complaint", text: "Go directly to Jail. Do not pass Start.", effect: "jail" },
-  { title: "Art walk", text: "Advance to Solstice Square and resolve the space.", effect: "goto", target: 22 }
+  { title: "World tour", text: "Advance to the Taj Mahal and resolve the space.", effect: "goto", target: 22 }
 ];
 
 const posToGrid = (position) => {
@@ -57,6 +61,10 @@ const posToGrid = (position) => {
 let state = null;
 let timerId = null;
 let toastTimer = null;
+let saveTimer = null;
+let supabaseClient = null;
+let authUser = null;
+let authMode = "signin";
 
 const $ = (id) => document.getElementById(id);
 const money = (value) => `${value < 0 ? "−" : ""}$${Math.abs(value).toLocaleString()}`;
@@ -75,14 +83,22 @@ function init() {
   document.querySelectorAll(".close-rules").forEach(button => button.addEventListener("click", () => $("rules-dialog").close()));
   document.querySelectorAll(".close-dialog").forEach(button => button.addEventListener("click", () => $("decision-dialog").close()));
   document.querySelectorAll(".close-trade").forEach(button => button.addEventListener("click", () => $("trade-dialog").close()));
-  $("reset-button").addEventListener("click", resetGame);
-  $("roll-button").addEventListener("click", rollDie);
+  $("reset-button").addEventListener("click", prepareNewGame);
+  $("choose-steps-button").addEventListener("click", openStepChooser);
   $("trade-button").addEventListener("click", openTrade);
   $("trade-partner").addEventListener("change", populateTradeProperties);
   $("trade-form").addEventListener("submit", submitTrade);
   $("call-time-button").addEventListener("click", () => { if (state && !state.finishAfterRound) callTime(); });
   $("play-again-button").addEventListener("click", resetGame);
+  $("auth-form").addEventListener("submit", submitAuth);
+  $("auth-switch").addEventListener("click", toggleAuthMode);
+  $("sign-out-button").addEventListener("click", signOut);
+  $("new-game-button").addEventListener("click", prepareNewGame);
+  $("games-button").addEventListener("click", returnToLobby);
+  $("back-to-games-button").addEventListener("click", returnToLobby);
+  $("save-game-button").addEventListener("click", () => saveGame(true));
   [$("decision-dialog"), $("rules-dialog"), $("trade-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
+  configureSupabase();
 }
 
 function renderNameFields(count) {
@@ -90,24 +106,185 @@ function renderNameFields(count) {
   $("player-name-fields").innerHTML = Array.from({ length: count }, (_, i) => `<label class="name-field"><span>Group ${i + 1}</span><input class="name-input" maxlength="22" value="${escapeHtml(existing[i] || `Group ${i + 1}`)}" aria-label="Name for group ${i + 1}" /></label>`).join("");
 }
 
-function startGame(event) {
+async function startGame(event) {
   event.preventDefault();
   const names = [...document.querySelectorAll(".name-input")].map((input, i) => input.value.trim() || `Group ${i + 1}`);
+  const gameName = $("game-name").value.trim() || "My world tour";
   properties.forEach(p => { p.owner = null; p.building = false; });
-  state = { players: names.map((name, id) => ({ id, name, color: playerColors[id], cash: 1000, position: 0, jailed: false, jailPasses: 0, turns: 0 })), currentPlayer: 0, round: 1, phase: "roll", activity: ["The city is open. Every group begins with $1,000."], timeLeft: 7200, timerStarted: false, finishAfterRound: false, selectedProperty: null };
+  state = { gameId: null, gameName, players: names.map((name, id) => ({ id, name, color: playerColors[id], animal: playerAnimals[id], cash: 1000, position: 0, jailed: false, jailPasses: 0, turns: 0 })), currentPlayer: 0, round: 1, phase: "choose", activity: ["The city is open. Every group begins with $1,000."], timeLeft: 7200, timerStarted: false, finishAfterRound: false, selectedProperty: null };
   $("setup-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   renderAll();
-  log(`${player().name} opens the city. Roll the die when ready.`);
+  log(`${player().name} opens the city. Select the ${player().animal.name} to choose a move.`);
+  if (supabaseClient && authUser) await createCloudGame();
 }
 
 function resetGame() {
   if (timerId) clearInterval(timerId);
+  clearTimeout(saveTimer);
   state = null;
   ["decision-dialog", "rules-dialog", "trade-dialog", "end-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
   $("play-screen").classList.add("hidden");
+  if (supabaseClient && authUser) showLobby(); else showSetup();
+}
+
+function showSetup() {
+  if (timerId) clearInterval(timerId);
+  state = null;
+  $("auth-screen").classList.add("hidden");
+  $("lobby-screen").classList.add("hidden");
+  $("play-screen").classList.add("hidden");
   $("setup-screen").classList.remove("hidden");
+  $("game-name").value = "My world tour";
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function prepareNewGame() {
+  if (state?.gameId) await saveGame(false);
+  showSetup();
+}
+
+async function configureSupabase() {
+  const config = window.MONOPOLY_SUPABASE || {};
+  const canConnect = config.url && config.anonKey && window.supabase?.createClient;
+  if (!canConnect) {
+    $("save-game-button").hidden = true;
+    $("save-status").textContent = "Local game";
+    return;
+  }
+  supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  authUser = session?.user || null;
+  supabaseClient.auth.onAuthStateChange((_event, sessionUpdate) => {
+    authUser = sessionUpdate?.user || null;
+  });
+  if (authUser) showLobby(); else showAuth();
+}
+
+function showAuth() {
+  $("setup-screen").classList.add("hidden");
+  $("lobby-screen").classList.add("hidden");
+  $("play-screen").classList.add("hidden");
+  $("auth-screen").classList.remove("hidden");
+  $("games-button").hidden = true;
+}
+
+function toggleAuthMode() {
+  authMode = authMode === "signin" ? "signup" : "signin";
+  $("auth-submit-label").textContent = authMode === "signin" ? "Sign in" : "Create account";
+  $("auth-switch").textContent = authMode === "signin" ? "New here? Create an account" : "Already have an account? Sign in";
+  $("auth-note").textContent = authMode === "signin" ? "Your games are private to your account." : "We’ll create your private game library.";
+}
+
+async function submitAuth(event) {
+  event.preventDefault();
+  if (!supabaseClient) return;
+  const email = $("auth-email").value.trim();
+  const password = $("auth-password").value;
+  const submit = $("auth-form").querySelector("button[type=submit]");
+  submit.disabled = true;
+  const result = authMode === "signin"
+    ? await supabaseClient.auth.signInWithPassword({ email, password })
+    : await supabaseClient.auth.signUp({ email, password });
+  submit.disabled = false;
+  if (result.error) { $("auth-note").textContent = result.error.message; return; }
+  if (!result.data.session) { $("auth-note").textContent = "Check your email to confirm your account, then sign in."; return; }
+  authUser = result.data.user;
+  await ensureProfile();
+  showLobby();
+}
+
+async function ensureProfile() {
+  if (!supabaseClient || !authUser) return;
+  await supabaseClient.from("monopoly_profiles").upsert({ id: authUser.id, display_name: authUser.email?.split("@")[0] || null }, { onConflict: "id" });
+}
+
+async function signOut() {
+  if (!supabaseClient) return;
+  await supabaseClient.auth.signOut();
+  authUser = null;
+  state = null;
+  showAuth();
+}
+
+async function showLobby() {
+  if (!authUser) { showAuth(); return; }
+  $("auth-screen").classList.add("hidden");
+  $("setup-screen").classList.add("hidden");
+  $("play-screen").classList.add("hidden");
+  $("lobby-screen").classList.remove("hidden");
+  $("games-button").hidden = false;
+  $("account-email").textContent = authUser.email || "Signed in";
+  await renderGameLibrary();
+}
+
+async function returnToLobby() {
+  if (!supabaseClient || !authUser) { showSetup(); return; }
+  if (state?.gameId) await saveGame(false);
+  if (timerId) clearInterval(timerId);
+  state = null;
+  showLobby();
+}
+
+async function renderGameLibrary() {
+  const library = $("game-library");
+  library.innerHTML = `<p class="empty-property">Loading your saved games…</p>`;
+  const { data: games, error } = await supabaseClient.from("monopoly_games").select("id, name, player_count, status, updated_at").order("updated_at", { ascending: false });
+  if (error) { library.innerHTML = `<p class="empty-property">Couldn’t load your games: ${escapeHtml(error.message)}</p>`; return; }
+  if (!games.length) { library.innerHTML = `<div class="empty-library"><span>🌍</span><h2>No cities yet</h2><p>Create your first world-landmark game to start building a saved collection.</p></div>`; return; }
+  library.innerHTML = games.map(game => `<article class="saved-game"><div><p class="eyebrow">${game.status === "complete" ? "Complete" : "In progress"}</p><h2>${escapeHtml(game.name)}</h2><p>${game.player_count} groups · saved ${new Date(game.updated_at).toLocaleString()}</p></div><button class="primary-button" type="button" data-game-id="${game.id}">Resume</button></article>`).join("");
+  library.querySelectorAll("[data-game-id]").forEach(button => button.addEventListener("click", () => loadCloudGame(button.dataset.gameId)));
+}
+
+function snapshotGame() {
+  return {
+    state: { ...state },
+    properties: properties.map(property => ({ position: property.position, owner: property.owner, building: property.building }))
+  };
+}
+
+async function createCloudGame() {
+  $("save-status").textContent = "Saving…";
+  const { data, error } = await supabaseClient.from("monopoly_games").insert({
+    owner_id: authUser.id, name: state.gameName, player_count: state.players.length, game_state: snapshotGame()
+  }).select("id").single();
+  if (error) { $("save-status").textContent = "Cloud save unavailable"; toast(`Couldn’t create save: ${error.message}`); return; }
+  state.gameId = data.id;
+  $("save-status").textContent = "Saved";
+  $("back-to-games-button").hidden = false;
+}
+
+async function saveGame(showToast = false, status = "active") {
+  if (!supabaseClient || !authUser || !state?.gameId) return;
+  $("save-status").textContent = "Saving…";
+  const { error } = await supabaseClient.from("monopoly_games").update({ name: state.gameName, player_count: state.players.length, status, game_state: snapshotGame() }).eq("id", state.gameId);
+  $("save-status").textContent = error ? "Save failed" : "Saved";
+  if (showToast) toast(error ? `Couldn’t save: ${error.message}` : "Game saved to your account.");
+}
+
+function queueSave() {
+  if (!state?.gameId) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveGame(false), 500);
+}
+
+async function loadCloudGame(gameId) {
+  const { data: game, error } = await supabaseClient.from("monopoly_games").select("id, name, game_state").eq("id", gameId).single();
+  if (error) { toast(`Couldn’t open game: ${error.message}`); return; }
+  const snapshot = game.game_state;
+  if (!snapshot?.state || !Array.isArray(snapshot.properties)) { toast("This saved game is not valid."); return; }
+  snapshot.properties.forEach(saved => {
+    const property = propertyAt[saved.position];
+    if (property) { property.owner = saved.owner; property.building = saved.building; }
+  });
+  state = { ...snapshot.state, gameId: game.id, gameName: game.name, phase: snapshot.state.phase === "decision" ? "choose" : snapshot.state.phase };
+  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id] }));
+  $("lobby-screen").classList.add("hidden");
+  $("play-screen").classList.remove("hidden");
+  $("back-to-games-button").hidden = false;
+  $("save-status").textContent = "Saved";
+  renderAll();
+  toast(`${state.gameName} resumed.`);
 }
 
 function renderAll() {
@@ -121,13 +298,18 @@ function renderBoard() {
     const propertyClass = isProperty(space) ? `space-property ${space.owner !== null ? `owned owner-${space.owner}` : ""} ${space.building ? "has-building" : ""}` : "";
     const typeClass = `space ${space.type || "property"} ${propertyClass} ${[0,9,18,27].includes(pos) ? "corner" : ""}`;
     const propertyBits = isProperty(space) ? `<span>${money(space.price)}</span><span>${money(space.rent)} rent</span>` : `<span>${space.label}</span>`;
+    const tokens = state.players.filter(p => p.position === pos).map(p => `<button class="token ${p.jailed ? "jailed" : ""} ${p.id === state.currentPlayer && state.phase === "choose" ? "token-active" : ""}" type="button" data-player-id="${p.id}" style="--token-color:${p.color}" aria-label="${escapeHtml(p.name)}, the ${p.animal.name}${p.jailed ? ", is in Jail" : ""}${p.id === state.currentPlayer && state.phase === "choose" ? ". Choose movement" : ""}" title="${escapeHtml(p.name)} · ${p.animal.name}">${p.animal.icon}</button>`).join("");
     return `<article class="${typeClass}" style="grid-row:${row};grid-column:${col};${isProperty(space) ? `--space-color:${space.color};` : ""}" role="gridcell" aria-label="${escapeHtml(space.name)}${isProperty(space) ? `, price ${money(space.price)}, rent ${money(space.rent)}` : `, ${space.label}`}">
       <div class="space-top"><span class="space-index">${String(pos).padStart(2, "0")}</span>${icon(space.icon || "i-build")}</div>
-      <strong class="space-name">${escapeHtml(space.name)}</strong><div class="space-meta">${propertyBits}</div><i class="building-mini" aria-hidden="true"></i>
+      <strong class="space-name">${escapeHtml(space.name)}</strong><div class="space-meta">${propertyBits}</div><i class="building-mini" aria-hidden="true"></i><div class="token-rack" aria-label="Players on ${escapeHtml(space.name)}">${tokens}</div>
     </article>`;
   }).join("");
-  const tokens = state.players.map(p => `<span class="token ${p.jailed ? "jailed" : ""}" style="--token-color:${p.color}" aria-label="${escapeHtml(p.name)}${p.jailed ? " is in Jail" : ""}"></span>`).join("");
-  board.innerHTML = `${cells}<section class="city-center" aria-label="City Fortune"><div class="city-skyline" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="center-content"><p class="eyebrow">Buy · trade · build</p><h1 class="center-title">CITY<span>FORTUNE</span></h1><p class="center-subtitle">The race to own the city</p></div><div class="token-rack" aria-label="Player tokens">${tokens}</div></section>`;
+  board.innerHTML = `${cells}<section class="city-center" aria-label="City Fortune"><div class="city-skyline" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="center-content"><p class="eyebrow">Buy · trade · build</p><h1 class="center-title">CITY<span>FORTUNE</span></h1><p class="center-subtitle">The race to own the world's landmarks</p></div></section>`;
+  board.querySelectorAll(".token").forEach(token => token.addEventListener("click", () => {
+    const selected = state.players[Number(token.dataset.playerId)];
+    if (selected.id !== state.currentPlayer) { toast(`It is ${player().name}'s turn.`); return; }
+    openStepChooser();
+  }));
 }
 
 function renderToolbar() {
@@ -147,10 +329,10 @@ function renderTurn() {
   const p = player();
   const prompt = $("turn-prompt"), actions = $("turn-actions"), badge = $("turn-badge");
   badge.textContent = state.phase.toUpperCase();
-  if (state.phase === "roll") {
-    prompt.innerHTML = `<strong>${escapeHtml(p.name)}, roll when ready.</strong><span>Move clockwise around the city.</span>`;
-    actions.innerHTML = `<button class="primary-button" id="roll-button" type="button">${icon("i-dice")}<span>Roll die</span></button>`;
-    $("roll-button").addEventListener("click", rollDie);
+  if (state.phase === "choose") {
+    prompt.innerHTML = `<strong>${p.animal.icon} ${escapeHtml(p.name)}, choose your move.</strong><span>Click your ${p.animal.name} token on the board, then select 1–6 steps.</span>`;
+    actions.innerHTML = `<button class="primary-button" id="choose-steps-button" type="button"><span>Choose 1–6 steps</span></button>`;
+    $("choose-steps-button").addEventListener("click", openStepChooser);
   } else if (state.phase === "decision") {
     prompt.innerHTML = `<strong>Resolve your city decision.</strong><span>Check the city card for your next step.</span>`;
     actions.innerHTML = `<button class="outline-button" type="button" id="decision-reminder">Show decision</button>`;
@@ -176,7 +358,7 @@ function renderPropertyPanel() {
   $("property-panel-title").textContent = prop.owner === null ? "Open property" : "Property details";
   const owner = prop.owner === null ? "Open to buy" : state.players[prop.owner].name;
   const cost = buildingCost(prop);
-  const canDevelop = prop.owner === player().id && !prop.building && state.phase === "roll";
+  const canDevelop = prop.owner === player().id && !prop.building && state.phase === "choose";
   content.innerHTML = `<div class="property-detail" style="--detail-color:${prop.color}"><div class="property-detail-head"><span class="property-swatch"></span><div><h3>${escapeHtml(prop.name)}</h3><p>${escapeHtml(owner)}${prop.building ? " · City Upgrade added" : ""}</p></div></div><div class="property-stat-row"><div class="property-stat"><span>Value</span><strong>${money(prop.price)}</strong></div><div class="property-stat"><span>Rent</span><strong>${money(prop.rent * (prop.building ? 2 : 1))}</strong></div><div class="property-stat"><span>Upgrade</span><strong>${prop.building ? "Built" : money(cost)}</strong></div></div>${canDevelop ? `<button class="outline-button develop-button" id="develop-button" type="button">${icon("i-build")} Add City Upgrade · ${money(cost)}</button>` : ""}</div>`;
   if (canDevelop) $("develop-button").addEventListener("click", () => developProperty(prop));
 }
@@ -187,17 +369,24 @@ function toast(message) { const region = $("toast-region"); region.innerHTML = `
 function escapeHtml(text) { return String(text).replace(/[&<>'"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#039;", '"':"&quot;" }[char])); }
 
 function startTimer() { if (state.timerStarted) return; state.timerStarted = true; timerId = setInterval(() => { if (!state || state.timeLeft <= 0) return; state.timeLeft--; renderToolbar(); if (state.timeLeft === 0) { clearInterval(timerId); callTime(); } }, 1000); }
-function callTime() { state.finishAfterRound = true; log("The two-hour city clock has ended. Complete the round."); toast("Time is up — finish the current round."); renderToolbar(); }
+function callTime() { state.finishAfterRound = true; log("The two-hour city clock has ended. Complete the round."); toast("Time is up — finish the current round."); renderToolbar(); queueSave(); }
 
-function rollDie() {
-  if (state.phase !== "roll") return;
-  startTimer();
+function openStepChooser() {
+  if (state.phase !== "choose") return;
   const p = player();
   if (p.jailed) { showJailDecision(); return; }
-  const roll = Math.floor(Math.random() * 6) + 1;
-  const dice = $("dice"); dice.classList.remove("rolling"); void dice.offsetWidth; dice.classList.add("rolling"); dice.textContent = roll;
+  const actions = Array.from({ length: 6 }, (_, index) => ({ label: `${index + 1} ${index === 0 ? "step" : "steps"}`, primary: index === 2, action: () => chooseSteps(index + 1) }));
+  showDecision({ icon: "i-flag", kicker: `${p.animal.icon} ${p.animal.name} movement`, title: `How far will ${p.name} travel?`, copy: "Choose one to six spaces. You control the route through the world landmarks.", details: `<div class="step-picker-note"><span>${p.animal.icon}</span><strong>${escapeHtml(p.name)}</strong><small>is currently on ${escapeHtml(spaces[p.position].name)}</small></div>`, actions });
+}
+
+function chooseSteps(steps) {
+  if (state.phase !== "choose") return;
+  startTimer();
+  const p = player();
   state.phase = "moving"; renderTurn();
-  setTimeout(() => movePlayer(p, roll, { collectStart: true, source: "roll" }), 390);
+  closeDecision();
+  log(`${p.name} chose to move ${steps} ${steps === 1 ? "step" : "steps"}.`);
+  setTimeout(() => movePlayer(p, steps, { collectStart: true, source: "choice" }), 180);
 }
 
 function movePlayer(p, steps, options = {}) {
@@ -256,8 +445,8 @@ function sendToJail(p, source) { p.position = 9; p.jailed = true; log(`${p.name}
 
 function showJailDecision() {
   const p = player(); state.phase = "decision"; renderTurn();
-  const actions = [{ label: "Miss this turn", action: () => { p.jailed = false; log(`${p.name} missed a turn to leave Jail.`); closeDecision(); endTurn(); } }, { label: "Pay $50 and roll", primary: true, action: () => { adjustCash(p, -50); p.jailed = false; log(`${p.name} paid $50 to leave Jail.`); closeDecision(); state.phase = "roll"; renderAll(); toast("You’re out — roll the die."); } }];
-  if (p.jailPasses > 0) actions.splice(1, 0, { label: "Use Jail pass and roll", action: () => { p.jailPasses--; p.jailed = false; log(`${p.name} used a Get Out of Jail pass.`); closeDecision(); state.phase = "roll"; renderAll(); toast("Pass used — roll the die."); } });
+  const actions = [{ label: "Miss this turn", action: () => { p.jailed = false; log(`${p.name} missed a turn to leave Jail.`); closeDecision(); endTurn(); } }, { label: "Pay $50 and choose steps", primary: true, action: () => { adjustCash(p, -50); p.jailed = false; log(`${p.name} paid $50 to leave Jail.`); closeDecision(); state.phase = "choose"; renderAll(); toast("You’re out — choose your steps."); } }];
+  if (p.jailPasses > 0) actions.splice(1, 0, { label: "Use Jail pass and choose steps", action: () => { p.jailPasses--; p.jailed = false; log(`${p.name} used a Get Out of Jail pass.`); closeDecision(); state.phase = "choose"; renderAll(); toast("Pass used — choose your steps."); } });
   showDecision({ icon: "i-lock", kicker: "You’re in Jail", title: "Choose how to leave", copy: "Pay the release fee, use a Get Out of Jail pass, or take a breather and miss this turn.", actions });
 }
 
@@ -281,7 +470,7 @@ function endTurn() {
   setTimeout(() => {
     if (lastPlayer && state.finishAfterRound) { endGame(); return; }
     state.currentPlayer = lastPlayer ? 0 : state.currentPlayer + 1; if (lastPlayer) state.round++;
-    state.phase = "roll"; state.selectedProperty = null; renderAll(); log(`${player().name}’s turn begins.`);
+    state.phase = "choose"; state.selectedProperty = null; renderAll(); log(`${player().name}’s turn begins. Select the ${player().animal.name} to choose a move.`); queueSave();
   }, 280);
 }
 
@@ -301,6 +490,7 @@ function endGame() {
   if (timerId) clearInterval(timerId); const scores = state.players.map(p => ({ ...p, wealth: totalWealth(p), propertyValue: properties.filter(x => x.owner === p.id).reduce((sum, x) => sum + propertyWorth(x), 0) })).sort((a, b) => b.wealth - a.wealth);
   const winner = scores[0]; $("winner-message").textContent = `${winner.name} takes the city with ${money(winner.wealth)} in total wealth.`;
   $("scoreboard").innerHTML = scores.map((p, i) => `<div class="score-row"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>Cash ${money(p.cash)} · City value ${money(p.propertyValue)}</small></div><strong class="score-wealth ${p.wealth < 0 ? "negative" : ""}">${money(p.wealth)}</strong></div>`).join("");
+  saveGame(false, "complete");
   $("end-dialog").showModal();
 }
 
