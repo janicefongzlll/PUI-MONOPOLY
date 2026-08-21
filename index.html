@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="City Fortune — a city-building property trading tabletop game." />
+    <title>City Fortune — Play the City</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Mono:wght@400;500&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#game-area">Skip to game board</a>
+
+    <svg class="svg-sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-train" viewBox="0 0 24 24"><path d="M6 18v-8a6 6 0 0 1 12 0v8M4 18h16M8 22l2-4m6 4-2-4M8 10h8M9 14h.01M15 14h.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M7 10h7M7 14h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+      <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 9h18M5 9v9m4-9v9m6-9v9m4-9v9M3 21h18M12 3l9 4H3l9-4Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8 10V7a4 4 0 1 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+      <symbol id="i-park" viewBox="0 0 24 24"><path d="M8 21V4h5.4a4.3 4.3 0 1 1 0 8.6H8M5 21h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-build" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13M8 21v-6h8v6M8 10h.01M12 10h.01M16 10h.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 11v5m0-8v.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 22V3m0 1h11l-2 4 2 4H6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    </svg>
+
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="City Fortune home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>CITY<br /><strong>FORTUNE</strong></span>
+      </a>
+      <div class="topbar-actions">
+        <button class="text-button" id="games-button" type="button" hidden>My games</button>
+        <button class="text-button" id="rules-button" type="button"><svg aria-hidden="true"><use href="#i-info"></use></svg> Rules</button>
+        <button class="text-button" id="reset-button" type="button">New game</button>
+      </div>
+    </header>
+
+    <main id="game-area">
+      <section class="auth-screen hidden" id="auth-screen" aria-labelledby="auth-title">
+        <div class="setup-copy">
+          <p class="eyebrow">City Fortune account</p>
+          <h1 id="auth-title">Save the city.<br /><span>Return anytime.</span></h1>
+          <p class="intro">Sign in to create multiple city games, save every turn, and continue exactly where your group stopped.</p>
+        </div>
+        <form class="setup-card auth-card" id="auth-form">
+          <div class="setup-card-heading"><p class="eyebrow">Player access</p><h2>Welcome back</h2></div>
+          <label class="name-field"><span>Email</span><input id="auth-email" type="email" autocomplete="email" required placeholder="you@example.com" /></label>
+          <label class="name-field"><span>Password</span><input id="auth-password" type="password" autocomplete="current-password" required minlength="6" placeholder="At least 6 characters" /></label>
+          <button class="primary-button setup-submit" type="submit"><span id="auth-submit-label">Sign in</span><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+          <button class="text-button auth-switch" id="auth-switch" type="button">New here? Create an account</button>
+          <p class="setup-note" id="auth-note">Your games are private to your account.</p>
+        </form>
+      </section>
+
+      <section class="lobby-screen hidden" id="lobby-screen" aria-labelledby="lobby-title">
+        <div class="lobby-heading"><div><p class="eyebrow">Your saved cities</p><h1 id="lobby-title">Choose a game</h1><p id="account-email" class="intro"></p></div><div class="lobby-actions"><button class="outline-button" id="sign-out-button" type="button">Sign out</button><button class="primary-button" id="new-game-button" type="button">Create a new game</button></div></div>
+        <div class="game-library" id="game-library" aria-live="polite"></div>
+      </section>
+
+      <section class="setup-screen" id="setup-screen" aria-labelledby="setup-title">
+        <div class="setup-copy">
+          <p class="eyebrow">A 2-hour tabletop city game</p>
+          <h1 id="setup-title">Build your fortune.<br /><span>Own the city.</span></h1>
+          <p class="intro">Buy landmark properties, trade with rival groups, make smart upgrades, and reach the two-hour bell with the strongest city portfolio.</p>
+          <div class="rule-pills" aria-label="Game highlights">
+            <span>2–6 groups</span><span>36 city spaces</span><span>Choose 1–6 steps</span><span>2 hours</span>
+          </div>
+        </div>
+
+        <form class="setup-card" id="setup-form">
+          <div class="setup-card-heading">
+            <p class="eyebrow">Set the table</p>
+            <h2>Who’s playing?</h2>
+          </div>
+          <label class="name-field"><span>Game name</span><input id="game-name" maxlength="48" value="My world tour" aria-label="Game name" /></label>
+          <fieldset class="group-count">
+            <legend>Number of groups</legend>
+            <div class="segment-control" role="radiogroup" aria-label="Number of groups">
+              <label><input type="radio" name="count" value="2" checked /><span>2</span></label>
+              <label><input type="radio" name="count" value="3" /><span>3</span></label>
+              <label><input type="radio" name="count" value="4" /><span>4</span></label>
+              <label><input type="radio" name="count" value="5" /><span>5</span></label>
+              <label><input type="radio" name="count" value="6" /><span>6</span></label>
+            </div>
+          </fieldset>
+          <div class="player-name-fields" id="player-name-fields"></div>
+          <button class="primary-button setup-submit" type="submit"><span>Start City Fortune</span><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+          <p class="setup-note">Every group starts with <strong>$1,000</strong>.</p>
+        </form>
+      </section>
+
+      <section class="play-screen hidden" id="play-screen" aria-label="City Fortune game table">
+          <div class="game-toolbar">
+          <div class="turn-summary">
+            <span class="status-dot" id="status-dot"></span>
+            <div><p class="small-label">Now playing</p><strong id="current-player-label">Group 1</strong></div>
+          </div>
+          <div class="round-chip"><span class="small-label">Round</span><strong id="round-display">01</strong></div>
+          <div class="game-toolbar-actions"><span class="save-status" id="save-status" aria-live="polite"></span><button class="outline-button" id="save-game-button" type="button">Save now</button><button class="outline-button" id="call-time-button" type="button">Call time</button></div>
+        </div>
+
+        <p class="time-callout hidden" id="time-callout" role="status">Time was called. Finish this round so every group takes the same number of turns.</p>
+
+        <div class="game-layout">
+          <section class="board-shell" aria-label="36 space City Fortune board">
+            <div class="game-board" id="game-board" role="grid" aria-label="City Fortune board"></div>
+          </section>
+
+          <aside class="game-sidebar" aria-label="Game controls and city ledger">
+            <section class="turn-card panel">
+              <div class="turn-card-top"><p class="eyebrow">Your move</p><span class="turn-badge" id="turn-badge">CHOOSE</span></div>
+              <div class="turn-prompt turn-prompt-wide" id="turn-prompt"><strong>Choose your movement.</strong><span>Click your animal on the board, then select 1–6 steps.</span></div>
+              <div class="turn-actions" id="turn-actions">
+                <button class="primary-button" id="choose-steps-button" type="button"><span>Choose steps</span></button>
+              </div>
+            </section>
+
+            <section class="panel city-ledger">
+              <div class="panel-heading"><div><p class="eyebrow">City ledger</p><h2>Groups</h2></div><button class="icon-button" id="trade-button" type="button" aria-label="Open trading table" title="Open trading table"><svg aria-hidden="true"><use href="#i-card"></use></svg></button></div>
+              <div class="player-list" id="player-list"></div>
+            </section>
+
+            <section class="panel property-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Property desk</p><h2 id="property-panel-title">City portfolio</h2></div><svg class="heading-icon" aria-hidden="true"><use href="#i-build"></use></svg></div>
+              <div id="property-panel-content" class="property-panel-content"></div>
+            </section>
+
+            <section class="activity-panel" aria-label="Recent city activity">
+              <p class="eyebrow">City wire</p>
+              <ol id="activity-log"></ol>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <dialog class="game-dialog" id="decision-dialog" aria-labelledby="dialog-title">
+      <div class="dialog-header"><span class="dialog-icon" id="dialog-icon"></span><button class="icon-button close-dialog" type="button" aria-label="Close dialog"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></div>
+      <p class="eyebrow" id="dialog-kicker"></p>
+      <h2 id="dialog-title"></h2>
+      <p class="dialog-copy" id="dialog-copy"></p>
+      <div class="dialog-details" id="dialog-details"></div>
+      <div class="dialog-actions" id="dialog-actions"></div>
+    </dialog>
+
+    <dialog class="game-dialog rules-dialog" id="rules-dialog" aria-labelledby="rules-title">
+      <div class="dialog-header"><span class="dialog-icon"><svg aria-hidden="true"><use href="#i-bank"></use></svg></span><button class="icon-button close-rules" type="button" aria-label="Close rules"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></div>
+      <p class="eyebrow">City Fortune rulebook</p><h2 id="rules-title">Play the city your way.</h2>
+      <div class="rules-content">
+        <section><h3>Goal</h3><p>After two hours, finish the current round. Your total wealth is cash + property purchase values + your building values. Highest total wins.</p></section>
+        <section><h3>On your turn</h3><p>Click your animal token, choose 1–6 steps, then move clockwise and resolve the space. Passing Start earns $200. Buy an open property, pay rent on a rival’s property, or draw a Chance card.</p></section>
+        <section><h3>Properties & upgrades</h3><p>Any group may buy an unowned property it lands on. An owner may add one City Upgrade to each property for half its purchase price. An upgrade doubles that property’s base rent and adds its cost to your final wealth.</p></section>
+        <section><h3>City spaces</h3><p>Income Tax costs $100. City Maintenance Tax costs $50. On a Transit Station, pay $40 to travel to the other station and end your turn there. Free Parking is a breather.</p></section>
+        <section><h3>Jail</h3><p>If sent to Jail, on your next turn either pay $50, use a Get Out of Jail pass, or miss one turn. Landing on Jail is just visiting.</p></section>
+        <section><h3>Trading & cash</h3><p>Groups may trade properties and money whenever all involved groups agree. If a payment makes cash negative, record the debt and continue: it counts against final wealth.</p></section>
+      </div>
+      <div class="dialog-actions"><button class="primary-button close-rules" type="button">Got it</button></div>
+    </dialog>
+
+    <dialog class="game-dialog trade-dialog" id="trade-dialog" aria-labelledby="trade-title">
+      <div class="dialog-header"><span class="dialog-icon"><svg aria-hidden="true"><use href="#i-card"></use></svg></span><button class="icon-button close-trade" type="button" aria-label="Close trading table"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></div>
+      <p class="eyebrow">All groups must agree</p><h2 id="trade-title">Make a city trade</h2>
+      <form id="trade-form" class="trade-form">
+        <div class="trade-parties"><div class="trade-party current"><span class="small-label">Offering group</span><strong id="trade-from-name">Group 1</strong></div><span class="trade-arrow">↔</span><label class="select-label"><span>Trade with</span><select id="trade-partner"></select></label></div>
+        <div class="trade-grid">
+          <label class="select-label"><span>Your property to give</span><select id="trade-from-property"></select></label>
+          <label class="select-label"><span>Their property to give</span><select id="trade-to-property"></select></label>
+          <label class="select-label"><span>Cash you give</span><input id="trade-from-cash" inputmode="numeric" min="0" step="10" type="number" value="0" /></label>
+          <label class="select-label"><span>Cash they give</span><input id="trade-to-cash" inputmode="numeric" min="0" step="10" type="number" value="0" /></label>
+        </div>
+        <p class="form-note">Choose “No property” when the trade is cash only. The exchange is applied immediately once agreed.</p>
+        <div class="dialog-actions"><button class="outline-button close-trade" type="button">Cancel</button><button class="primary-button" type="submit">Confirm agreed trade</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="game-dialog end-dialog" id="end-dialog" aria-labelledby="end-title">
+      <div class="end-city-art" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <p class="eyebrow">The final city ledger</p><h2 id="end-title">City Fortune results</h2><p class="dialog-copy" id="winner-message"></p>
+      <div class="scoreboard" id="scoreboard"></div>
+      <div class="dialog-actions"><button class="primary-button" id="play-again-button" type="button">Play again</button></div>
+    </dialog>
+
+    <div class="toast-region" aria-live="polite" aria-atomic="true" id="toast-region"></div>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+      <div class="space-tip" id="space-tip" role="tooltip" hidden></div>
+  </body>
+</html>
