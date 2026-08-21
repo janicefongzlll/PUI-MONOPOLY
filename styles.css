@@ -170,8 +170,8 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 @keyframes sync-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 
 /* Tilted 3D board + fullscreen play ---------------------------------------------- */
-:root { --board-tilt: 5deg; --board-spin: -.5deg; --board-perspective: 2400px; --board-width: 97%; }
-.board-shell { perspective: var(--board-perspective); perspective-origin: 50% 32%; }
+:root { --board-tilt: 5deg; --board-spin: -.5deg; --board-perspective: none; --board-width: 97%; }
+.board-shell { perspective: var(--board-perspective); }
 .game-board { transform: rotateX(var(--board-tilt)) rotateZ(var(--board-spin)); transform-origin: 50% 46%; box-shadow: 0 22px 0 -8px var(--wd-green-shadow), 0 40px 58px rgba(9, 45, 36, .32); }
 @media (max-width: 900px) { :root { --board-tilt: 4deg; --board-spin: 0deg; --board-width: 100%; } }
 
@@ -272,3 +272,91 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 .is-fullscreen .game-board { max-width: min(100%, calc((100dvh - 140px) * 13 / 7)); }
 @media (max-width: 900px) { .game-board { max-width: 1000px; } }
 @media (max-width: 600px) { .city-center { grid-column: 2 / 13; grid-row: 2 / 7; } }
+
+/* City wire moved into a dialog ---------------------------------------------------- */
+.log-dialog { width: min(560px, calc(100vw - 32px)); }
+.activity-list { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; max-height: min(52vh, 420px); overflow: auto; }
+.activity-list li { position: relative; padding-left: 17px; color: var(--ink); font-size: 13px; line-height: 1.4; }
+.activity-list li::before { content: ""; position: absolute; left: 0; top: .5em; width: 6px; height: 6px; border-radius: 50%; background: var(--wd-brand); }
+.activity-list li:first-child { font-weight: 800; }
+.activity-list li:first-child::before { box-shadow: 0 0 0 3px var(--wd-brand-soft); }
+
+/* Jail corners use their own artwork instead of the landmark atlas ----------------- */
+.space.jail .space-art { background-image: url("assets/jail.jpg"); background-size: cover; background-position: center; }
+.space.go-jail .space-art { background-image: url("assets/go-to-jail.png"); background-size: cover; background-position: center; }
+
+/* City ledger shows the player avatar instead of a colour dot --------------------- */
+.player-row { grid-template-columns: 28px minmax(0, 1fr) auto; }
+.player-avatar { display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid var(--avatar-color); border-radius: 50%; background: color-mix(in srgb, var(--avatar-color) 18%, #fff); font-size: 15px; line-height: 1; }
+.player-row.active .player-avatar { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--avatar-color); }
+
+/* Avatar picker in setup ---------------------------------------------------------- */
+.group-setup { display: grid; gap: 7px; }
+.avatar-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.avatar-option { position: relative; cursor: pointer; }
+.avatar-option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.avatar-option span { display: grid; place-items: center; width: 38px; height: 38px; border: 2px solid var(--wd-green-border); border-radius: 12px; background: #fff; font-size: 19px; line-height: 1; transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
+.avatar-option input:checked + span { border-color: var(--wd-brand); background: var(--wd-brand-soft); box-shadow: 0 3px 0 var(--wd-brand-deep); transform: translateY(-2px); }
+.avatar-option input:focus-visible + span { outline: 3px solid var(--wd-brand-dark); outline-offset: 2px; }
+
+/* Anime avatar art ---------------------------------------------------------------- */
+/* Both files are sheets, so each animal is a crop. --avatar-zoom scales the sheet so a
+   ~420px square region fills the box; --avatar-pos picks which region. Nudge the two
+   percentages in a row to re-centre that animal. */
+.avatar-snake    { --avatar-sheet: url("assets/avatar-snake.jpeg"); --avatar-zoom: 228.6% 304.8%; --avatar-pos: 48.1% 34.9%; }
+.avatar-horse    { --avatar-sheet: url("assets/avatar-quad.jpeg");  --avatar-zoom: 304.8% 243.8%; --avatar-pos: 28.1% 17.4%; }
+.avatar-mouse    { --avatar-sheet: url("assets/avatar-quad.jpeg");  --avatar-zoom: 304.8% 243.8%; --avatar-pos: 77.3% 20.7%; }
+.avatar-goldfish { --avatar-sheet: url("assets/avatar-quad.jpeg");  --avatar-zoom: 304.8% 243.8%; --avatar-pos: 24.7% 86.1%; }
+.avatar-monkey   { --avatar-sheet: url("assets/avatar-quad.jpeg");  --avatar-zoom: 304.8% 243.8%; --avatar-pos: 75.2% 84.4%; }
+
+.avatar-art { display: block; width: 100%; height: 100%; border-radius: inherit; background-image: var(--avatar-sheet); background-size: var(--avatar-zoom); background-position: var(--avatar-pos); background-repeat: no-repeat; }
+.avatar-inline { display: inline-block; width: 1.5em; height: 1.5em; border-radius: 50%; vertical-align: -.42em; }
+
+.avatar-option span { overflow: hidden; padding: 0; }
+.player-avatar { overflow: hidden; padding: 0; }
+.step-avatar { display: block; width: 42px; height: 42px; border: 2px solid var(--wd-green-border); border-radius: 12px; overflow: hidden; font-size: 0; }
+.token { overflow: hidden; background: #f7f2ed; border: 2px solid #fff; box-shadow: 0 0 0 2.5px var(--token-color); }
+.tip-chip { gap: 5px; padding-left: 3px; }
+
+/* Uniform, taller boxes ------------------------------------------------------------
+   repeat(N, 1fr) is minmax(auto, 1fr), so the pile of pieces at Start stretched the
+   bottom row and squashed the rest. minmax(0, 1fr) pins every track to an equal share;
+   the taller aspect-ratio then gives every box the roomier height the bottom row had. */
+.game-board { aspect-ratio: 13 / 9.3; grid-template-columns: repeat(13, minmax(0, 1fr)); grid-template-rows: repeat(7, minmax(0, 1fr)); }
+.is-fullscreen .game-board { max-width: min(100%, calc((100dvh - 140px) * 13 / 9.3)); }
+
+/* Mini game challenge stakes ------------------------------------------------------ */
+.challenge-stakes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stake { padding: 12px; border: 2px solid var(--wd-green-border); border-radius: 12px; background: var(--wd-green-surface); text-align: center; }
+.stake p { margin: 0; color: var(--muted); font: 800 9px "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+.stake strong { display: block; margin: 5px 0 2px; font: 600 20px "DM Mono", monospace; letter-spacing: -.02em; }
+.stake span { color: var(--muted); font-size: 11px; font-weight: 700; }
+.stake-lose { border-color: var(--wd-pink-border); background: var(--wd-pink-surface); }
+.stake-lose strong { color: #85284c; }
+.stake-win { border-color: var(--wd-brand); background: var(--wd-brand-soft); }
+.stake-win strong { color: var(--wd-brand-deep); }
+@media (max-width: 600px) { .challenge-stakes { grid-template-columns: 1fr; } }
+
+/* Challenge result buttons mirror the stake cards above them ---------------------- */
+.dialog-actions:has(.button-win) { justify-content: stretch; gap: 10px; }
+.dialog-actions:has(.button-win) > button { flex: 1; }
+.dialog-actions .button-lose { border: 3px solid var(--wd-pink-border); background: var(--wd-pink-surface); color: #85284c; font-weight: 800; box-shadow: 0 4px 0 var(--wd-pink-shadow); }
+.dialog-actions .button-lose:hover { background: #ffd2e2; box-shadow: 0 6px 0 var(--wd-pink-shadow); transform: translateY(-2px); }
+.dialog-actions .button-lose:active { box-shadow: 0 2px 0 var(--wd-pink-shadow); transform: translateY(2px); }
+.dialog-actions .button-win { border: 3px solid var(--wd-brand-deep); background: var(--wd-brand); color: #fff; font-weight: 800; box-shadow: 0 4px 0 var(--wd-brand-deep); }
+.dialog-actions .button-win:hover { background: var(--wd-brand-hover); box-shadow: 0 6px 0 var(--wd-brand-deep); transform: translateY(-2px); }
+.dialog-actions .button-win:active { box-shadow: 0 2px 0 var(--wd-brand-deep); transform: translateY(2px); }
+
+/* Ownership emblems replace the coloured dots -------------------------------------- */
+.owner-pip { display: grid; place-items: center; width: clamp(13px, 1.5vw, 21px); height: clamp(13px, 1.5vw, 21px); border: 2px solid var(--pip-color); border-radius: 30%; background: #fff; box-shadow: 0 0 0 1.5px #fff, 2px 2px 0 rgba(23, 48, 26, .3); }
+.owner-pip svg { width: 78%; height: 78%; }
+.owner-pip-built { width: clamp(15px, 1.75vw, 24px); height: clamp(15px, 1.75vw, 24px); border: 2px solid #c9920f; border-radius: 30%; background: #fffaea; box-shadow: 0 0 0 1.5px #fff, 0 0 0 3.5px #ffdf8d, 2px 2px 0 rgba(23, 48, 26, .3); filter: none; }
+.owner-pip-built::before, .owner-pip-built::after { content: none; }
+
+/* Whose turn it is, under the ledger ---------------------------------------------- */
+.turn-spotlight { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 11px; border: 2px solid var(--wd-green-border); border-radius: 14px; background: var(--wd-green-surface); }
+.spotlight-avatar { flex: none; width: 56px; height: 56px; overflow: hidden; border: 3px solid var(--avatar-color); border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px #fff, 3px 3px 0 var(--wd-green-shadow); }
+.spotlight-text { min-width: 0; }
+.spotlight-text .eyebrow { margin: 0; }
+.spotlight-text strong { display: block; font-family: "Baloo 2", Nunito, sans-serif; font-size: 19px; line-height: 1.1; letter-spacing: -.03em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spotlight-text span { color: var(--muted); font: 700 11px "DM Mono", monospace; letter-spacing: .06em; text-transform: uppercase; }

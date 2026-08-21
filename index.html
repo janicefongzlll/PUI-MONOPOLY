@@ -23,6 +23,11 @@
       <symbol id="i-build" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13M8 21v-6h8v6M8 10h.01M12 10h.01M16 10h.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 11v5m0-8v.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
       <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="pip-grass" viewBox="0 0 24 24"><path d="M12 19v-6M12 19c0-4.5 1.6-7.5 4.3-9.4M12 19c0-5-1.6-8.2-4.3-10.2" fill="none" stroke="#4f9c3a" stroke-width="2.4" stroke-linecap="round"/><path d="M4.5 19.5h15" stroke="#356b28" stroke-width="2.2" stroke-linecap="round"/></symbol>
+      <symbol id="pip-banana" viewBox="0 0 24 24"><path d="M5.6 4.6c-1.2 8.4 4.2 14.6 12.1 14.6 1.6 0 2.2-1.5 1-2.2-5.1-1.2-8.2-5.3-8.2-11.3 0-1.5-1.5-2.1-2.8-2.1-1 0-2 .4-2.1 1z" fill="#f5cf3f" stroke="#3f320f" stroke-width="1.6" stroke-linejoin="round"/><path d="M5.6 4.6 5 2.8" stroke="#3f320f" stroke-width="1.6" stroke-linecap="round"/></symbol>
+      <symbol id="pip-cheese" viewBox="0 0 24 24"><path d="M2.8 17.4 20 8.4v9H2.8z" fill="#f5c542" stroke="#4a3a0d" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="14.4" r="1.4" fill="#d09a12"/><circle cx="13.6" cy="13.2" r="1" fill="#d09a12"/><circle cx="16.8" cy="15.4" r="0.9" fill="#d09a12"/></symbol>
+      <symbol id="pip-hat" viewBox="0 0 24 24"><path d="M3.6 16.2c0-1.6 2.1-2.2 4.2-2.4.3-3.2 1.1-6.2 4.2-6.2s3.9 3 4.2 6.2c2.1.2 4.2.8 4.2 2.4 0 1.6-3.8 2.4-8.4 2.4s-8.4-.8-8.4-2.4z" fill="#a5713f" stroke="#3a2412" stroke-width="1.6" stroke-linejoin="round"/><path d="M7.8 13.8c1.4.3 2.8.4 4.2.4s2.8-.1 4.2-.4" fill="none" stroke="#3a2412" stroke-width="1.5"/></symbol>
+      <symbol id="pip-tank" viewBox="0 0 24 24"><rect x="3.2" y="5.8" width="17.6" height="13" rx="2.2" fill="#cfeeff" stroke="#1d4a5e" stroke-width="1.7"/><path d="M4 10.2c2.6-1.4 4.6 1.4 7.2 0s4.6 1.4 6.8 0" fill="none" stroke="#5fb3d4" stroke-width="1.4"/><path d="M8.6 14.6c1.6-2.2 4.2-2.2 5.6 0-1.4 2.2-4 2.2-5.6 0z" fill="#f08b3c"/><path d="m14.2 14.6 2.6-1.6v3.2z" fill="#f08b3c"/></symbol>
       <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 22V3m0 1h11l-2 4 2 4H6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     </svg>
 
@@ -83,7 +88,6 @@
               <label><input type="radio" name="count" value="3" /><span>3</span></label>
               <label><input type="radio" name="count" value="4" /><span>4</span></label>
               <label><input type="radio" name="count" value="5" /><span>5</span></label>
-              <label><input type="radio" name="count" value="6" /><span>6</span></label>
             </div>
           </fieldset>
           <div class="player-name-fields" id="player-name-fields"></div>
@@ -99,7 +103,7 @@
             <div><p class="small-label">Now playing</p><strong id="current-player-label">Group 1</strong></div>
           </div>
           <div class="round-chip"><span class="small-label">Round</span><strong id="round-display">01</strong></div>
-          <div class="game-toolbar-actions"><span class="save-status" id="save-status" aria-live="polite"></span><button class="outline-button" id="save-game-button" type="button">Save now</button><button class="outline-button" id="call-time-button" type="button">Call time</button></div>
+          <div class="game-toolbar-actions"><span class="save-status" id="save-status" aria-live="polite"></span><button class="outline-button" id="save-game-button" type="button">Save now</button><button class="outline-button" id="log-button" type="button">Log</button><button class="outline-button" id="call-time-button" type="button">Call time</button></div>
         </div>
 
         <p class="time-callout hidden" id="time-callout" role="status">Time was called. Finish this round so every group takes the same number of turns.</p>
@@ -121,17 +125,10 @@
             <section class="panel city-ledger">
               <div class="panel-heading"><div><p class="eyebrow">City ledger</p><h2>Groups</h2></div><button class="icon-button" id="trade-button" type="button" aria-label="Open trading table" title="Open trading table"><svg aria-hidden="true"><use href="#i-card"></use></svg></button></div>
               <div class="player-list" id="player-list"></div>
+              <div class="turn-spotlight" id="turn-spotlight"></div>
             </section>
 
-            <section class="panel property-panel">
-              <div class="panel-heading"><div><p class="eyebrow">Property desk</p><h2 id="property-panel-title">City portfolio</h2></div><svg class="heading-icon" aria-hidden="true"><use href="#i-build"></use></svg></div>
-              <div id="property-panel-content" class="property-panel-content"></div>
-            </section>
 
-            <section class="activity-panel" aria-label="Recent city activity">
-              <p class="eyebrow">City wire</p>
-              <ol id="activity-log"></ol>
-            </section>
           </aside>
         </div>
       </section>
@@ -146,6 +143,12 @@
       <div class="dialog-actions" id="dialog-actions"></div>
     </dialog>
 
+    <dialog class="game-dialog log-dialog" id="log-dialog" aria-labelledby="log-title">
+      <div class="dialog-header"><span class="dialog-icon"><svg aria-hidden="true"><use href="#i-info"></use></svg></span><button class="icon-button close-log" type="button" aria-label="Close activity log"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></div>
+      <p class="eyebrow">City wire</p><h2 id="log-title">Everything that has happened</h2>
+      <ol class="activity-list" id="activity-log"></ol>
+    </dialog>
+
     <dialog class="game-dialog rules-dialog" id="rules-dialog" aria-labelledby="rules-title">
       <div class="dialog-header"><span class="dialog-icon"><svg aria-hidden="true"><use href="#i-bank"></use></svg></span><button class="icon-button close-rules" type="button" aria-label="Close rules"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></div>
       <p class="eyebrow">City Fortune rulebook</p><h2 id="rules-title">Play the city your way.</h2>
@@ -153,6 +156,7 @@
         <section><h3>Goal</h3><p>After two hours, finish the current round. Your total wealth is cash + property purchase values + your building values. Highest total wins.</p></section>
         <section><h3>On your turn</h3><p>Click your animal token, choose 1–6 steps, then move clockwise and resolve the space. Passing Start earns $200. Buy an open property, pay rent on a rival’s property, or draw a Chance card.</p></section>
         <section><h3>Properties & upgrades</h3><p>Any group may buy an unowned property it lands on. An owner may add one City Upgrade to each property for half its purchase price. An upgrade doubles that property’s base rent and adds its cost to your final wealth.</p></section>
+        <section><h3>Rent or challenge</h3><p>Land on a rival’s landmark and you choose: pay the rent, or challenge the owner to a mini game played away from the screen. If the owner wins you pay double rent. If you win you pay nothing. Record the result honestly — it cannot be undone.</p></section>
         <section><h3>City spaces</h3><p>Income Tax costs $100. City Maintenance Tax costs $50. On a Transit Station, pay $40 to travel to the other station and end your turn there. Free Parking is a breather.</p></section>
         <section><h3>Jail</h3><p>If sent to Jail, on your next turn either pay $50, use a Get Out of Jail pass, or miss one turn. Landing on Jail is just visiting.</p></section>
         <section><h3>Trading & cash</h3><p>Groups may trade properties and money whenever all involved groups agree. If a payment makes cash negative, record the debt and continue: it counts against final wealth.</p></section>

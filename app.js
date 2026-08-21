@@ -78,9 +78,11 @@ const posToGrid = (position) => {
 
 const playerColors = ["#ef4a54", "#1769aa", "#8e5ee4", "#e27719", "#138c73", "#be3372"];
 const playerAnimals = [
-  { icon: "🐯", name: "Tiger" }, { icon: "🐼", name: "Panda" }, { icon: "🦊", name: "Fox" },
-  { icon: "🦁", name: "Lion" }, { icon: "🐸", name: "Frog" }, { icon: "🦉", name: "Owl" }
+  { icon: "🐍", name: "Snake", art: "snake", pip: "grass" }, { icon: "🐒", name: "Monkey", art: "monkey", pip: "banana" }, { icon: "🐭", name: "Mouse", art: "mouse", pip: "cheese" },
+  { icon: "🐠", name: "Goldfish", art: "goldfish", pip: "tank" }, { icon: "🐴", name: "Horse", art: "horse", pip: "hat" }
 ];
+
+const avatarArt = (animal, extra = "") => `<i class="avatar-art avatar-${animal.art || "snake"} ${extra}" aria-hidden="true"></i>`;
 const chanceCards = [
   { title: "Street festival", text: "Your pop-up festival is a hit. Collect $120.", effect: "cash", amount: 120 },
   { title: "Permit review", text: "A permit needs another stamp. Pay $75.", effect: "cash", amount: -75 },
@@ -153,6 +155,8 @@ function init() {
   document.querySelectorAll('input[name="count"]').forEach(input => input.addEventListener("change", () => renderNameFields(Number(input.value))));
   $("setup-form").addEventListener("submit", startGame);
   $("rules-button").addEventListener("click", () => $("rules-dialog").showModal());
+  $("log-button").addEventListener("click", () => $("log-dialog").showModal());
+  document.querySelectorAll(".close-log").forEach(button => button.addEventListener("click", () => $("log-dialog").close()));
   document.querySelectorAll(".close-rules").forEach(button => button.addEventListener("click", () => $("rules-dialog").close()));
   document.querySelectorAll(".close-dialog").forEach(button => button.addEventListener("click", () => $("decision-dialog").close()));
   document.querySelectorAll(".close-trade").forEach(button => button.addEventListener("click", () => $("trade-dialog").close()));
@@ -169,7 +173,7 @@ function init() {
   $("new-game-button").addEventListener("click", prepareNewGame);
   $("games-button").addEventListener("click", returnToLobby);
   $("save-game-button").addEventListener("click", () => saveGame(true));
-  [$("decision-dialog"), $("rules-dialog"), $("trade-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
+  [$("decision-dialog"), $("rules-dialog"), $("trade-dialog"), $("log-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
   document.addEventListener("fullscreenchange", () => document.body.classList.toggle("is-fullscreen", Boolean(document.fullscreenElement)));
   window.addEventListener("offline", () => { if (canSync()) setSync("offline"); });
   window.addEventListener("online", () => { if (!canSync()) return; retryDelay = 0; if (saveDirty) saveGame(false); else setSync("saved"); });
@@ -179,18 +183,43 @@ function init() {
   configureSupabase();
 }
 
+function bindAvatarPicker() {
+  const groups = [...document.querySelectorAll(".avatar-picker")];
+  groups.forEach((group, index) => group.addEventListener("change", (event) => {
+    const chosen = Number(event.target.value);
+    const picks = groups.map(g => Number(g.querySelector("input:checked").value));
+    const clash = picks.findIndex((value, other) => other !== index && value === chosen);
+    if (clash === -1) return;
+    const taken = new Set(picks.filter((_, other) => other !== clash));
+    const free = playerAnimals.findIndex((_, idx) => !taken.has(idx));
+    const radio = groups[clash].querySelector(`input[value="${free}"]`);
+    if (radio) radio.checked = true;
+  }));
+}
+
 function renderNameFields(count) {
-  const existing = [...document.querySelectorAll(".name-input")].map(input => input.value);
-  $("player-name-fields").innerHTML = Array.from({ length: count }, (_, i) => `<label class="name-field"><span>Group ${i + 1}</span><input class="name-input" maxlength="22" value="${escapeHtml(existing[i] || `Group ${i + 1}`)}" aria-label="Name for group ${i + 1}" /></label>`).join("");
+  const names = [...document.querySelectorAll(".name-input")].map(input => input.value);
+  const previous = [...document.querySelectorAll(".avatar-picker")].map(g => Number(g.querySelector("input:checked").value));
+  const picks = [];
+  for (let i = 0; i < count; i++) {
+    const wanted = Number.isInteger(previous[i]) ? previous[i] : i;
+    picks.push(picks.includes(wanted) ? playerAnimals.findIndex((_, idx) => !picks.includes(idx)) : wanted);
+  }
+  $("player-name-fields").innerHTML = Array.from({ length: count }, (_, i) => `<div class="group-setup">
+      <label class="name-field"><span>Group ${i + 1}</span><input class="name-input" maxlength="22" value="${escapeHtml(names[i] || `Group ${i + 1}`)}" aria-label="Name for group ${i + 1}" /></label>
+      <div class="avatar-picker" role="radiogroup" aria-label="Avatar for group ${i + 1}">${playerAnimals.map((animal, idx) => `<label class="avatar-option"><input type="radio" name="avatar-${i}" value="${idx}" aria-label="${animal.name}"${picks[i] === idx ? " checked" : ""} /><span>${avatarArt(animal)}</span></label>`).join("")}</div>
+    </div>`).join("");
+  bindAvatarPicker();
 }
 
 async function startGame(event) {
   event.preventDefault();
   enterGameFullscreen();
   const names = [...document.querySelectorAll(".name-input")].map((input, i) => input.value.trim() || `Group ${i + 1}`);
+  const chosen = [...document.querySelectorAll(".avatar-picker")].map(g => playerAnimals[Number(g.querySelector("input:checked").value)]);
   const gameName = $("game-name").value.trim() || "My world tour";
   properties.forEach(p => { p.owner = null; p.building = false; });
-  state = { gameId: null, gameName, players: names.map((name, id) => ({ id, name, color: playerColors[id], animal: playerAnimals[id], cash: 1000, position: 0, jailed: false, jailPasses: 0, turns: 0 })), currentPlayer: 0, round: 1, phase: "choose", activity: ["The city is open. Every group begins with $1,000."], finishAfterRound: false, selectedProperty: null };
+  state = { gameId: null, gameName, players: names.map((name, id) => ({ id, name, color: playerColors[id], animal: chosen[id] || playerAnimals[id], cash: 1000, position: 0, jailed: false, jailPasses: 0, turns: 0 })), currentPlayer: 0, round: 1, phase: "choose", activity: ["The city is open. Every group begins with $1,000."], finishAfterRound: false, pending: null };
   $("setup-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   renderAll();
@@ -202,7 +231,7 @@ function resetGame() {
   resetSync();
   exitGameFullscreen();
   state = null;
-  ["decision-dialog", "rules-dialog", "trade-dialog", "end-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
+  ["decision-dialog", "rules-dialog", "trade-dialog", "log-dialog", "end-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
   $("play-screen").classList.add("hidden");
   if (supabaseClient && authUser) showLobby(); else showSetup();
 }
@@ -396,17 +425,18 @@ async function loadCloudGame(gameId) {
     const property = properties.find(p => p.name === saved.name) || propertyAt[legacy ? legacyPositionMap[saved.position] : saved.position];
     if (property) { property.owner = saved.owner; property.building = saved.building; }
   });
-  state = { ...snapshot.state, gameId: game.id, gameName: game.name, phase: snapshot.state.phase === "decision" ? "choose" : snapshot.state.phase };
+  state = { ...snapshot.state, gameId: game.id, gameName: game.name };
   state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id], position: legacy ? (legacyPositionMap[savedPlayer.position] ?? 0) : savedPlayer.position }));
   $("lobby-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   lastSyncedAt = new Date(); saveDirty = false; setSync("saved");
   renderAll();
+  if (state.phase === "decision") { resumePending(); toast(`${state.gameName} resumed — finish your open decision.`); return; }
   toast(`${state.gameName} resumed.`);
 }
 
 function renderAll() {
-  renderBoard(); renderToolbar(); renderTurn(); renderPlayers(); renderPropertyPanel(); renderActivity();
+  renderBoard(); renderToolbar(); renderTurn(); renderPlayers(); renderActivity();
 }
 
 const spaceKindLabel = { start: "Start", chance: "Chance", tax: "Tax", station: "Transit", jail: "Jail", parking: "Rest", "go-jail": "Jail" };
@@ -419,7 +449,7 @@ function spaceTipHtml(pos) {
   const space = spaces[pos];
   const here = state.players.filter(p => p.position === pos);
   const standing = here.length
-    ? `<p class="tip-here">${here.map(p => `<span class="tip-chip" style="--chip:${p.color}">${p.animal.icon} ${escapeHtml(p.name)}</span>`).join("")}</p>`
+    ? `<p class="tip-here">${here.map(p => `<span class="tip-chip" style="--chip:${p.color}">${avatarArt(p.animal, "avatar-inline")}${escapeHtml(p.name)}</span>`).join("")}</p>`
     : "";
   const head = `<p class="tip-kind">${spaceKind(space)}</p><h4>${escapeHtml(space.name)}</h4>`;
   if (!isProperty(space)) return `${head}<p class="tip-note">${escapeHtml(space.label)}</p>${standing}`;
@@ -481,7 +511,7 @@ function renderBoard() {
     const here = state.players.filter(p => p.position === pos);
     if (!here.length) return "";
     const [row, col] = posToGrid(pos);
-    const tokens = here.map(p => `<button class="token ${p.jailed ? "jailed" : ""} ${p.id === state.currentPlayer && state.phase === "choose" ? "token-active" : ""}" type="button" data-player-id="${p.id}" style="--token-color:${p.color}" aria-label="${escapeHtml(p.name)}, the ${p.animal.name}${p.jailed ? ", is in Jail" : ""}${p.id === state.currentPlayer && state.phase === "choose" ? ". Choose movement" : ""}" title="${escapeHtml(p.name)} · ${p.animal.name}">${p.animal.icon}</button>`).join("");
+    const tokens = here.map(p => `<button class="token ${p.jailed ? "jailed" : ""} ${p.id === state.currentPlayer && state.phase === "choose" ? "token-active" : ""}" type="button" data-player-id="${p.id}" style="--token-color:${p.color}" aria-label="${escapeHtml(p.name)}, the ${p.animal.name}${p.jailed ? ", is in Jail" : ""}${p.id === state.currentPlayer && state.phase === "choose" ? ". Choose movement" : ""}" title="${escapeHtml(p.name)} · ${p.animal.name}">${avatarArt(p.animal)}</button>`).join("");
     return `<div class="token-rack" data-pos="${pos}" style="grid-row:${row};grid-column:${col}" aria-label="Players on ${escapeHtml(space.name)}">${tokens}</div>`;
   }).join("");
 
@@ -493,7 +523,8 @@ function renderBoard() {
     const edge = row === 1 ? "top" : row === BOARD_ROWS ? "bottom" : col === 1 ? "left" : "right";
     const pipRow = edge === "top" ? 2 : edge === "bottom" ? BOARD_ROWS - 1 : row;
     const pipCol = edge === "left" ? 2 : edge === "right" ? BOARD_COLS - 1 : col;
-    return `<i class="owner-pip owner-pip-${edge} ${space.building ? "owner-pip-built" : ""}" style="grid-row:${pipRow};grid-column:${pipCol};--pip-color:${state.players[space.owner].color}" aria-hidden="true"></i>`;
+    const holder = state.players[space.owner];
+    return `<i class="owner-pip owner-pip-${edge} ${space.building ? "owner-pip-built" : ""}" style="grid-row:${pipRow};grid-column:${pipCol};--pip-color:${holder.color}" aria-hidden="true">${icon(`pip-${holder.animal.pip || "grass"}`)}</i>`;
   }).join("");
 
   board.innerHTML = `${cells}<section class="city-center" aria-label="City Fortune"><div class="center-plaque"><p class="center-eyebrow">Buy · Trade · Build</p><h1 class="center-title">CITY<span>FORTUNE</span></h1></div><div class="center-dice" aria-hidden="true"><span class="die die-a"><i></i><i></i><i></i></span><span class="die die-b"><i></i><i></i><i></i><i></i></span></div></section>${racks}${owners}`;
@@ -520,9 +551,12 @@ function renderTurn() {
   const prompt = $("turn-prompt"), actions = $("turn-actions"), badge = $("turn-badge");
   badge.textContent = state.phase.toUpperCase();
   if (state.phase === "choose") {
-    prompt.innerHTML = `<strong>${p.animal.icon} ${escapeHtml(p.name)}, choose your move.</strong><span>Click your ${p.animal.name} token on the board, then select 1–6 steps.</span>`;
-    actions.innerHTML = `<button class="primary-button" id="choose-steps-button" type="button"><span>Choose 1–6 steps</span></button>`;
+    prompt.innerHTML = `<strong>${avatarArt(p.animal, "avatar-inline")} ${escapeHtml(p.name)}, choose your move.</strong><span>Click your ${p.animal.name} token on the board, then select 1–6 steps.</span>`;
+    const here = spaces[p.position];
+    const canUpgrade = isProperty(here) && here.owner === p.id && !here.building;
+    actions.innerHTML = `<button class="primary-button" id="choose-steps-button" type="button"><span>Choose 1–6 steps</span></button>${canUpgrade ? `<button class="outline-button" id="develop-button" type="button">Upgrade ${escapeHtml(here.name)} · ${money(buildingCost(here))}</button>` : ""}`;
     $("choose-steps-button").addEventListener("click", openStepChooser);
+    if (canUpgrade) $("develop-button").addEventListener("click", () => developProperty(here));
   } else if (state.phase === "decision") {
     prompt.innerHTML = `<strong>Resolve your city decision.</strong><span>Check the city card for your next step.</span>`;
     actions.innerHTML = `<button class="outline-button" type="button" id="decision-reminder">Show decision</button>`;
@@ -534,26 +568,15 @@ function renderTurn() {
 }
 
 function renderPlayers() {
+  const turn = player();
+  $("turn-spotlight").innerHTML = `<div class="spotlight-avatar" style="--avatar-color:${turn.color}">${avatarArt(turn.animal)}</div><div class="spotlight-text"><p class="eyebrow">Now playing</p><strong>${escapeHtml(turn.name)}</strong><span>${turn.animal.name}</span></div>`;
   $("player-list").innerHTML = state.players.map(p => {
     const owned = properties.filter(prop => prop.owner === p.id); const upgrades = owned.filter(prop => prop.building).length;
-    return `<div class="player-row ${p.id === state.currentPlayer ? "active" : ""}"><span class="player-color" style="background:${p.color}"></span><div><div class="player-name">${escapeHtml(p.name)}</div><div class="player-portfolio">${owned.length} properties${upgrades ? ` · ${upgrades} upgrade${upgrades === 1 ? "" : "s"}` : ""}${p.jailPasses ? ` · ${p.jailPasses} pass` : ""}</div></div><strong class="player-cash ${p.cash < 0 ? "negative" : ""}">${money(p.cash)}</strong></div>`;
+    return `<div class="player-row ${p.id === state.currentPlayer ? "active" : ""}"><span class="player-avatar" style="--avatar-color:${p.color}" title="${escapeHtml(p.animal.name)}">${avatarArt(p.animal)}</span><div><div class="player-name">${escapeHtml(p.name)}</div><div class="player-portfolio">${owned.length} properties${upgrades ? ` · ${upgrades} upgrade${upgrades === 1 ? "" : "s"}` : ""}${p.jailPasses ? ` · ${p.jailPasses} pass` : ""}</div></div><strong class="player-cash ${p.cash < 0 ? "negative" : ""}">${money(p.cash)}</strong></div>`;
   }).join("");
 }
 
-function renderPropertyPanel() {
-  const content = $("property-panel-content");
-  let prop = state.selectedProperty ? propertyAt[state.selectedProperty] : null;
-  if (!prop) prop = properties.find(p => p.owner === player().id) || null;
-  if (!prop) { $("property-panel-title").textContent = "City portfolio"; content.innerHTML = `<p class="empty-property">${escapeHtml(player().name)} has no properties yet. Find an open block and make your first deal.</p>`; return; }
-  $("property-panel-title").textContent = prop.owner === null ? "Open property" : "Property details";
-  const owner = prop.owner === null ? "Open to buy" : state.players[prop.owner].name;
-  const cost = buildingCost(prop);
-  const canDevelop = prop.owner === player().id && !prop.building && state.phase === "choose";
-  content.innerHTML = `<div class="property-detail" style="--detail-color:${prop.color}"><div class="property-detail-head"><span class="property-swatch"></span><div><h3>${escapeHtml(prop.name)}</h3><p>${escapeHtml(owner)}${prop.building ? " · City Upgrade added" : ""}</p></div></div><div class="property-stat-row"><div class="property-stat"><span>Value</span><strong>${money(prop.price)}</strong></div><div class="property-stat"><span>Rent</span><strong>${money(prop.rent * (prop.building ? 2 : 1))}</strong></div><div class="property-stat"><span>Upgrade</span><strong>${prop.building ? "Built" : money(cost)}</strong></div></div>${canDevelop ? `<button class="outline-button develop-button" id="develop-button" type="button">Upgrade for ${money(cost)}</button>` : ""}</div>`;
-  if (canDevelop) $("develop-button").addEventListener("click", () => developProperty(prop));
-}
-
-function renderActivity() { $("activity-log").innerHTML = state.activity.slice(0, 7).map(item => `<li>${escapeHtml(item)}</li>`).join(""); }
+function renderActivity() { $("activity-log").innerHTML = state.activity.slice(0, 60).map(item => `<li>${escapeHtml(item)}</li>`).join(""); }
 function log(message) { state.activity.unshift(message); renderActivity(); queueSave(); }
 function toast(message) { const region = $("toast-region"); region.innerHTML = `<div class="toast">${escapeHtml(message)}</div>`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { region.innerHTML = ""; }, 3600); }
 function escapeHtml(text) { return String(text).replace(/[&<>'"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#039;", '"':"&quot;" }[char])); }
@@ -565,7 +588,7 @@ function openStepChooser() {
   const p = player();
   if (p.jailed) { showJailDecision(); return; }
   const actions = Array.from({ length: 6 }, (_, index) => ({ label: `${index + 1} ${index === 0 ? "step" : "steps"}`, primary: index === 2, action: () => chooseSteps(index + 1) }));
-  showDecision({ icon: "i-flag", kicker: `${p.animal.icon} ${p.animal.name} movement`, title: `How far will ${p.name} travel?`, copy: "Choose one to six spaces. You control the route through the world landmarks.", details: `<div class="step-picker-note"><span>${p.animal.icon}</span><strong>${escapeHtml(p.name)}</strong><small>is currently on ${escapeHtml(spaces[p.position].name)}</small></div>`, actions });
+  showDecision({ icon: "i-flag", kicker: `${p.animal.name} movement`, title: `How far will ${p.name} travel?`, copy: "Choose one to six spaces. You control the route through the world landmarks.", details: `<div class="step-picker-note"><span class="step-avatar">${avatarArt(p.animal)}</span><strong>${escapeHtml(p.name)}</strong><small>is currently on ${escapeHtml(spaces[p.position].name)}</small></div>`, actions });
 }
 
 function chooseSteps(steps) {
@@ -586,8 +609,7 @@ function movePlayer(p, steps, options = {}) {
 
 function resolveSpace(p, options = {}) {
   const space = spaces[p.position];
-  if (isProperty(space)) { state.selectedProperty = space.position; renderPropertyPanel(); resolveProperty(p, space); return; }
-  state.selectedProperty = null; renderPropertyPanel();
+  if (isProperty(space)) { resolveProperty(p, space); return; }
   if (space.type === "start") { log(`${p.name} lands on Start.`); endTurn(); }
   else if (space.type === "tax") { adjustCash(p, -space.amount); log(`${p.name} paid ${money(space.amount)} for ${space.name}.`); toast(`${space.name}: ${money(space.amount)}`); endTurn(); }
   else if (space.type === "chance") drawChance(p);
@@ -599,16 +621,78 @@ function resolveSpace(p, options = {}) {
 function resolveProperty(p, prop) {
   if (prop.owner === null) { showPurchaseDecision(p, prop); return; }
   if (prop.owner === p.id) { log(`${p.name} landed on ${prop.name}. It is already theirs.`); endTurn(); return; }
-  const owner = state.players[prop.owner]; const rent = prop.rent * (prop.building ? 2 : 1); adjustCash(p, -rent); adjustCash(owner, rent); log(`${p.name} paid ${money(rent)} rent to ${owner.name} for ${prop.name}.`); toast(`${money(rent)} rent paid to ${owner.name}`); renderPlayers(); endTurn();
+  showRentDecision(p, prop);
+}
+
+const rentOf = (prop) => prop.rent * (prop.building ? 2 : 1);
+
+function showRentDecision(p, prop) {
+  const owner = state.players[prop.owner];
+  const rent = rentOf(prop);
+  state.phase = "decision"; setPending({ kind: "rent", player: p.id, pos: prop.position }); renderTurn();
+  showDecision({
+    icon: "i-bank",
+    kicker: "Rival landmark",
+    title: `${prop.name} belongs to ${owner.name}`,
+    copy: `Pay the rent, or challenge ${owner.name} to a mini game. Beat them and you pay nothing — lose and the rent doubles.`,
+    details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Rent ${money(rent)} · doubled ${money(rent * 2)}</span></div><strong class="money">${money(rent)}</strong></div>`,
+    actions: [
+      { label: `Pay ${money(rent)} rent`, primary: true, action: () => { closeDecision(); payRent(p, prop, 1); } },
+      { label: `Challenge ${owner.name}`, action: () => { closeDecision(); log(`${p.name} challenged ${owner.name} to a mini game over ${prop.name}.`); showChallengeDecision(p, prop); } }
+    ]
+  });
+}
+
+function showChallengeDecision(p, prop) {
+  const owner = state.players[prop.owner];
+  const rent = rentOf(prop);
+  state.phase = "decision"; setPending({ kind: "challenge", player: p.id, pos: prop.position });
+  showDecision({
+    icon: "i-flag",
+    kicker: "Mini game challenge",
+    title: `${p.name} vs ${owner.name}`,
+    copy: "Play the mini game away from the screen, then record who won. This cannot be undone.",
+    details: `<div class="challenge-stakes">
+      <div class="stake stake-lose"><p>${escapeHtml(owner.name)} wins</p><strong>${money(rent * 2)}</strong><span>double rent</span></div>
+      <div class="stake stake-win"><p>${escapeHtml(p.name)} wins</p><strong>${money(0)}</strong><span>pays nothing</span></div>
+    </div>`,
+    actions: [
+      { label: `${owner.name} won`, variant: "button-lose", action: () => { closeDecision(); payRent(p, prop, 2, true); } },
+      { label: `${p.name} won`, primary: true, variant: "button-win", action: () => { closeDecision(); winChallenge(p, prop); } }
+    ]
+  });
+}
+
+function payRent(p, prop, multiplier = 1, viaChallenge = false) {
+  const owner = state.players[prop.owner];
+  const rent = rentOf(prop) * multiplier;
+  adjustCash(p, -rent); adjustCash(owner, rent);
+  log(viaChallenge
+    ? `${owner.name} won the mini game. ${p.name} paid double rent, ${money(rent)}, for ${prop.name}.`
+    : `${p.name} paid ${money(rent)} rent to ${owner.name} for ${prop.name}.`);
+  toast(viaChallenge ? `Challenge lost — ${money(rent)} double rent` : `${money(rent)} rent paid to ${owner.name}`);
+  renderPlayers(); endTurn();
+}
+
+function winChallenge(p, prop) {
+  const owner = state.players[prop.owner];
+  log(`${p.name} beat ${owner.name} at the mini game and stays on ${prop.name} rent free.`);
+  toast(`${p.name} won the challenge — no rent!`);
+  endTurn();
 }
 
 function showPurchaseDecision(p, prop) {
-  state.phase = "decision"; renderTurn();
+  state.phase = "decision"; setPending({ kind: "purchase", player: p.id, pos: prop.position }); renderTurn();
   showDecision({ icon: "i-build", kicker: "Open city block", title: `${prop.name} is available`, copy: `Buy this address to add it to ${p.name}’s city portfolio. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions: [{ label: `Buy for ${money(prop.price)}`, primary: true, action: () => { adjustCash(p, -prop.price); prop.owner = p.id; log(`${p.name} bought ${prop.name} for ${money(prop.price)}.`); toast(`${prop.name} is now yours.`); closeDecision(); endTurn(); } }, { label: "Pass on this property", action: () => { log(`${p.name} left ${prop.name} open for another group.`); closeDecision(); endTurn(); } }] });
 }
 
 function drawChance(p) {
-  const card = chanceCards[Math.floor(Math.random() * chanceCards.length)]; state.phase = "decision"; renderTurn();
+  showChanceCard(p, Math.floor(Math.random() * chanceCards.length));
+}
+
+function showChanceCard(p, index) {
+  const card = chanceCards[index];
+  state.phase = "decision"; setPending({ kind: "chance", player: p.id, card: index }); renderTurn();
   showDecision({ icon: "i-card", kicker: "City chance", title: card.title, copy: card.text, details: `<div class="chance-card"><strong>CHANCE CARD</strong><p>${escapeHtml(card.text)}</p></div>`, actions: [{ label: "Resolve card", primary: true, action: () => { closeDecision(); applyChance(p, card); } }] });
 }
 
@@ -625,14 +709,18 @@ function applyChance(p, card) {
 
 function resolveStation(p, options) {
   if (options.freeTransit) { endTurn(); return; }
-  state.phase = "decision"; renderTurn(); const target = p.position === 6 ? 16 : 6;
+  showStationDecision(p, stationPositions.find(pos => pos !== p.position) ?? stationPositions[0]);
+}
+
+function showStationDecision(p, target) {
+  state.phase = "decision"; setPending({ kind: "station", player: p.id, target }); renderTurn();
   showDecision({ icon: "i-train", kicker: "Transit Station", title: "Catch the city line?", copy: `Pay $40 to travel directly to the other Transit Station. Your turn ends when you arrive.`, details: `<div class="space-summary"><i class="swatch" style="background:var(--violet)"></i><div><strong>${spaces[target].name}</strong><span>A fast route across the city.</span></div><strong class="money">$40</strong></div>`, actions: [{ label: "Stay here", action: () => { log(`${p.name} stayed at the Transit Station.`); closeDecision(); endTurn(); } }, { label: "Ride for $40", primary: true, action: () => { adjustCash(p, -40); p.position = target; log(`${p.name} rode the city line for $40.`); closeDecision(); renderBoard(); endTurn(); } }] });
 }
 
 function sendToJail(p, source) { p.position = cornerAt[1]; p.jailed = true; log(`${p.name} was sent to Jail by ${source}.`); toast(`${p.name} is in Jail.`); renderBoard(); renderPlayers(); endTurn(); }
 
 function showJailDecision() {
-  const p = player(); state.phase = "decision"; renderTurn();
+  const p = player(); state.phase = "decision"; setPending({ kind: "jail", player: p.id }); renderTurn();
   const actions = [{ label: "Miss this turn", action: () => { p.jailed = false; log(`${p.name} missed a turn to leave Jail.`); closeDecision(); endTurn(); } }, { label: "Pay $50 and choose steps", primary: true, action: () => { adjustCash(p, -50); p.jailed = false; log(`${p.name} paid $50 to leave Jail.`); closeDecision(); state.phase = "choose"; renderAll(); toast("You’re out — choose your steps."); } }];
   if (p.jailPasses > 0) actions.splice(1, 0, { label: "Use Jail pass and choose steps", action: () => { p.jailPasses--; p.jailed = false; log(`${p.name} used a Get Out of Jail pass.`); closeDecision(); state.phase = "choose"; renderAll(); toast("Pass used — choose your steps."); } });
   showDecision({ icon: "i-lock", kicker: "You’re in Jail", title: "Choose how to leave", copy: "Pay the release fee, use a Get Out of Jail pass, or take a breather and miss this turn.", actions });
@@ -640,10 +728,28 @@ function showJailDecision() {
 
 function showDecision({ icon: iconName, kicker, title, copy, details = "", actions = [] }) {
   $("dialog-icon").innerHTML = icon(iconName); $("dialog-kicker").textContent = kicker; $("dialog-title").textContent = title; $("dialog-copy").textContent = copy; $("dialog-details").innerHTML = details;
-  $("dialog-actions").innerHTML = actions.map((action, index) => `<button class="${action.primary ? "primary-button" : "outline-button"}" type="button" data-action="${index}">${escapeHtml(action.label)}</button>`).join("");
+  $("dialog-actions").innerHTML = actions.map((action, index) => `<button class="${action.primary ? "primary-button" : "outline-button"}${action.variant ? ` ${action.variant}` : ""}" type="button" data-action="${index}">${escapeHtml(action.label)}</button>`).join("");
   $("dialog-actions").querySelectorAll("button").forEach((button, index) => button.addEventListener("click", actions[index].action));
   $("decision-dialog").showModal();
 }
+// A decision that is open but unanswered is persisted, so resuming a game reopens it
+// instead of silently continuing the turn as if it had been settled.
+function setPending(pending) { state.pending = pending; queueSave(); }
+
+function resumePending() {
+  const pending = state?.pending;
+  if (!pending) { if (state && state.phase === "decision") { state.phase = "choose"; renderTurn(); } return; }
+  const p = state.players[pending.player] || player();
+  state.currentPlayer = p.id;
+  if (pending.kind === "purchase" && propertyAt[pending.pos]) return showPurchaseDecision(p, propertyAt[pending.pos]);
+  if (pending.kind === "rent" && propertyAt[pending.pos]) return showRentDecision(p, propertyAt[pending.pos]);
+  if (pending.kind === "challenge" && propertyAt[pending.pos]) return showChallengeDecision(p, propertyAt[pending.pos]);
+  if (pending.kind === "chance" && chanceCards[pending.card]) return showChanceCard(p, pending.card);
+  if (pending.kind === "station") return showStationDecision(p, pending.target);
+  if (pending.kind === "jail") return showJailDecision();
+  state.pending = null; state.phase = "choose"; renderTurn();
+}
+
 function closeDecision() { if ($("decision-dialog").open) $("decision-dialog").close(); }
 function adjustCash(p, amount) { p.cash += amount; renderPlayers(); queueSave(); }
 
@@ -653,12 +759,13 @@ function developProperty(prop) {
 }
 
 function endTurn() {
+  state.pending = null;
   const p = player(); p.turns++; state.phase = "moving"; renderAll();
   const lastPlayer = state.currentPlayer === state.players.length - 1;
   setTimeout(() => {
     if (lastPlayer && state.finishAfterRound) { endGame(); return; }
     state.currentPlayer = lastPlayer ? 0 : state.currentPlayer + 1; if (lastPlayer) state.round++;
-    state.phase = "choose"; state.selectedProperty = null; renderAll(); log(`${player().name}’s turn begins. Select the ${player().animal.name} to choose a move.`); queueSave();
+    state.phase = "choose"; renderAll(); log(`${player().name}’s turn begins. Select the ${player().animal.name} to choose a move.`); queueSave();
   }, 280);
 }
 
