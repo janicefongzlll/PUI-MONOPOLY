@@ -265,3 +265,10 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 .owner-pip-built { width: clamp(11px, 1.3vw, 18px); height: clamp(11px, 1.3vw, 18px); border: 0; border-radius: 0; background: none; box-shadow: none; transform-origin: 50% 100%; transform: rotateX(var(--token-stand)); filter: drop-shadow(0 0 1.5px #fff) drop-shadow(1.5px 2px 0 rgba(23, 48, 26, .45)); }
 .owner-pip-built::before { content: ""; position: absolute; inset: 0 0 auto; height: 48%; background: color-mix(in srgb, var(--pip-color) 62%, #10240f); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .owner-pip-built::after { content: ""; position: absolute; left: 14%; bottom: 0; width: 72%; height: 56%; border: 1.5px solid var(--wd-panel-border); border-radius: 1px 1px 2px 2px; background: linear-gradient(100deg, color-mix(in srgb, var(--pip-color) 78%, #10240f) 38%, var(--pip-color) 38%); }
+
+/* Landscape board: 13 x 7 ring instead of 10 x 10 --------------------------------- */
+.game-board { aspect-ratio: 13 / 7; grid-template-columns: repeat(13, 1fr); grid-template-rows: repeat(7, 1fr); }
+.city-center { grid-column: 2 / 13; grid-row: 2 / 7; }
+.is-fullscreen .game-board { max-width: min(100%, calc((100dvh - 140px) * 13 / 7)); }
+@media (max-width: 900px) { .game-board { max-width: 1000px; } }
+@media (max-width: 600px) { .city-center { grid-column: 2 / 13; grid-row: 2 / 7; } }

@@ -1,33 +1,80 @@
+// Board geometry. 36 spaces sit on the perimeter of a COLS x ROWS grid, so
+// COLS + ROWS must equal 20. 13x7 is close to 16:9 for landscape screens.
+const BOARD_COLS = 13;
+const BOARD_ROWS = 7;
+const EDGE_LONG = BOARD_COLS - 2;   // spaces along the top and bottom, between corners
+const EDGE_SHORT = BOARD_ROWS - 2;  // spaces up each side, between corners
+const EDGE_RUN = [EDGE_LONG, EDGE_SHORT, EDGE_LONG, EDGE_SHORT];
+const cornerAt = EDGE_RUN.reduce((acc, run) => [...acc, acc[acc.length - 1] + run + 1], [0]).slice(0, 4);
+
 const properties = [
-  [1, "Taipei 101", 80, 10, "#f4b942"], [3, "Petronas Twin Towers", 100, 12, "#e68463"],
-  [5, "Marina Bay Sands", 120, 14, "#d57cc8"], [7, "Burj Khalifa", 140, 16, "#9a86ea"],
-  [10, "Eiffel Tower", 160, 18, "#75bfbe"], [11, "Sagrada Família", 180, 20, "#5bb486"],
-  [12, "Colosseum", 200, 22, "#62a5e1"], [15, "Big Ben", 220, 24, "#f0808c"],
-  [17, "Acropolis", 240, 26, "#c3a268"], [19, "Christ the Redeemer", 260, 28, "#7db664"],
-  [21, "Machu Picchu", 280, 30, "#ca8cdb"], [22, "Taj Mahal", 300, 32, "#e8b340"],
-  [23, "Angkor Wat", 320, 34, "#76a9da"], [24, "Sydney Opera House", 340, 36, "#61c4b2"],
-  [25, "Golden Gate Bridge", 360, 38, "#d17698"], [26, "Statue of Liberty", 380, 40, "#ee9172"],
-  [28, "Moai of Rapa Nui", 400, 42, "#93b957"], [29, "Chichén Itzá", 420, 44, "#7672d6"],
-  [30, "Pyramids of Giza", 440, 46, "#e57e5b"], [31, "Neuschwanstein Castle", 460, 48, "#a66e48"],
-  [32, "Mount Fuji", 480, 50, "#5faed2"], [33, "Great Wall of China", 500, 52, "#8a73d5"],
-  [34, "Hagia Sophia", 520, 54, "#dc9c4d"], [35, "Grand Canyon", 560, 58, "#ec6671"]
-].map(([position, name, price, rent, color], art) => ({ position, name, price, rent, color, art, owner: null, building: false }));
+  ["Taipei 101", 80, 10, "#f4b942"], ["Petronas Twin Towers", 100, 12, "#e68463"],
+  ["Marina Bay Sands", 120, 14, "#d57cc8"], ["Burj Khalifa", 140, 16, "#9a86ea"],
+  ["Eiffel Tower", 160, 18, "#75bfbe"], ["Sagrada Família", 180, 20, "#5bb486"],
+  ["Colosseum", 200, 22, "#62a5e1"], ["Big Ben", 220, 24, "#f0808c"],
+  ["Acropolis", 240, 26, "#c3a268"], ["Christ the Redeemer", 260, 28, "#7db664"],
+  ["Machu Picchu", 280, 30, "#ca8cdb"], ["Taj Mahal", 300, 32, "#e8b340"],
+  ["Angkor Wat", 320, 34, "#76a9da"], ["Sydney Opera House", 340, 36, "#61c4b2"],
+  ["Golden Gate Bridge", 360, 38, "#d17698"], ["Statue of Liberty", 380, 40, "#ee9172"],
+  ["Moai of Rapa Nui", 400, 42, "#93b957"], ["Chichén Itzá", 420, 44, "#7672d6"],
+  ["Pyramids of Giza", 440, 46, "#e57e5b"], ["Neuschwanstein Castle", 460, 48, "#a66e48"],
+  ["Mount Fuji", 480, 50, "#5faed2"], ["Great Wall of China", 500, 52, "#8a73d5"],
+  ["Hagia Sophia", 520, 54, "#dc9c4d"], ["Grand Canyon", 560, 58, "#ec6671"]
+].map(([name, price, rent, color], art) => ({ position: 0, name, price, rent, color, art, owner: null, building: false }));
+
+const cornerSpaces = [
+  { type: "start", name: "Start", label: "Collect $200", art: 24 },
+  { type: "jail", name: "Jail", label: "Just Visiting", art: 29 },
+  { type: "parking", name: "Free Parking", label: "Take a breather", art: 28 },
+  { type: "go-jail", name: "Go to Jail", label: "Do not pass Start", art: 30 }
+];
+
+let propCursor = 0;
+const nextProperty = () => properties[propCursor++];
+const chanceSpace = () => ({ type: "chance", name: "Chance", label: "Draw a city card", art: 25 });
+const taxSpace = (name, amount) => ({ type: "tax", name, label: `Pay $${amount}`, art: 26, amount });
+const stationSpace = () => ({ type: "station", name: "Transit Station", label: "Ride for $40", art: 27 });
+
+// The 32 non-corner spaces, in the order you meet them travelling round the ring.
+const ringSpaces = [
+  nextProperty(), chanceSpace(), nextProperty(), taxSpace("Income Tax", 100), nextProperty(), stationSpace(), nextProperty(), chanceSpace(),
+  nextProperty(), nextProperty(), nextProperty(), taxSpace("City Maintenance", 50), chanceSpace(), nextProperty(), stationSpace(), nextProperty(),
+  nextProperty(), chanceSpace(), nextProperty(), nextProperty(), nextProperty(), nextProperty(), nextProperty(), nextProperty(),
+  nextProperty(), nextProperty(), nextProperty(), nextProperty(), nextProperty(), nextProperty(), nextProperty(), nextProperty()
+];
+
+const spaces = [];
+EDGE_RUN.forEach((run, side) => {
+  spaces.push(cornerSpaces[side]);
+  spaces.push(...ringSpaces.splice(0, run));
+});
+spaces.forEach((space, index) => { if (space.price !== undefined) space.position = index; });
 
 const propertyAt = Object.fromEntries(properties.map(p => [p.position, p]));
-const spaces = [
-  { type: "start", name: "Start", label: "Collect $200", art: 24 }, propertyAt[1],
-  { type: "chance", name: "Chance", label: "Draw a city card", art: 25 }, propertyAt[3],
-  { type: "tax", name: "Income Tax", label: "Pay $100", art: 26, amount: 100 }, propertyAt[5],
-  { type: "station", name: "Transit Station", label: "Ride for $40", art: 27 }, propertyAt[7],
-  { type: "chance", name: "Chance", label: "Draw a city card", art: 25 },
-  { type: "jail", name: "Jail", label: "Just Visiting", art: 29 }, propertyAt[10], propertyAt[11], propertyAt[12],
-  { type: "tax", name: "City Maintenance", label: "Pay $50", art: 26, amount: 50 },
-  { type: "chance", name: "Chance", label: "Draw a city card", art: 25 }, propertyAt[15],
-  { type: "station", name: "Transit Station", label: "Ride for $40", art: 27 }, propertyAt[17],
-  { type: "parking", name: "Free Parking", label: "Take a breather", art: 28 }, propertyAt[19],
-  { type: "chance", name: "Chance", label: "Draw a city card", art: 25 }, propertyAt[21], propertyAt[22], propertyAt[23], propertyAt[24], propertyAt[25], propertyAt[26],
-  { type: "go-jail", name: "Go to Jail", label: "Do not pass Start", art: 30 }, propertyAt[28], propertyAt[29], propertyAt[30], propertyAt[31], propertyAt[32], propertyAt[33], propertyAt[34], propertyAt[35]
-];
+const stationPositions = spaces.map((space, index) => (space.type === "station" ? index : -1)).filter(index => index >= 0);
+
+
+// Saves written before the board became 13x7 used the old 10x10 numbering.
+const legacyPositionMap = (() => {
+  const oldCorners = [0, 9, 18, 27];
+  const oldRing = Array.from({ length: 36 }, (_, i) => i).filter(i => !oldCorners.includes(i));
+  const map = Object.fromEntries(oldCorners.map((old, i) => [old, cornerAt[i]]));
+  let cursor = 0;
+  spaces.forEach((space, index) => { if (!cornerAt.includes(index)) map[oldRing[cursor++]] = index; });
+  return map;
+})();
+
+const posToGrid = (position) => {
+  const [bottomRight, bottomLeft, topLeft, topRight] = cornerAt;
+  if (position === bottomRight) return [BOARD_ROWS, BOARD_COLS];
+  if (position < bottomLeft) return [BOARD_ROWS, BOARD_COLS - (position - bottomRight)];
+  if (position === bottomLeft) return [BOARD_ROWS, 1];
+  if (position < topLeft) return [BOARD_ROWS - (position - bottomLeft), 1];
+  if (position === topLeft) return [1, 1];
+  if (position < topRight) return [1, 1 + (position - topLeft)];
+  if (position === topRight) return [1, BOARD_COLS];
+  return [1 + (position - topRight), BOARD_COLS];
+};
 
 const playerColors = ["#ef4a54", "#1769aa", "#8e5ee4", "#e27719", "#138c73", "#be3372"];
 const playerAnimals = [
@@ -44,19 +91,9 @@ const chanceCards = [
   { title: "Transit pass", text: "Move to the nearest Transit Station. No fee this ride.", effect: "nearestStation" },
   { title: "City security pass", text: "Keep this card. It gets your group out of Jail free.", effect: "jailPass" },
   { title: "Noise complaint", text: "Go directly to Jail. Do not pass Start.", effect: "jail" },
-  { title: "World tour", text: "Advance to the Taj Mahal and resolve the space.", effect: "goto", target: 22 }
+  { title: "World tour", text: "Advance to the Taj Mahal and resolve the space.", effect: "goto", targetName: "Taj Mahal" }
 ];
 
-const posToGrid = (position) => {
-  if (position === 0) return [10, 10];
-  if (position <= 8) return [10, 10 - position];
-  if (position === 9) return [10, 1];
-  if (position <= 17) return [19 - position, 1];
-  if (position === 18) return [1, 1];
-  if (position <= 26) return [1, position - 17];
-  if (position === 27) return [1, 10];
-  return [position - 26, 10];
-};
 
 let state = null;
 let toastTimer = null;
@@ -291,8 +328,9 @@ async function deleteCloudGame(gameId, gameName) {
 
 function snapshotGame() {
   return {
+    board: 2,
     state: { ...state },
-    properties: properties.map(property => ({ position: property.position, owner: property.owner, building: property.building }))
+    properties: properties.map(property => ({ position: property.position, name: property.name, owner: property.owner, building: property.building }))
   };
 }
 
@@ -353,12 +391,13 @@ async function loadCloudGame(gameId) {
   if (error) { toast(`Couldn’t open game: ${error.message}`); return; }
   const snapshot = game.game_state;
   if (!snapshot?.state || !Array.isArray(snapshot.properties)) { toast("This saved game is not valid."); return; }
+  const legacy = snapshot.board !== 2;
   snapshot.properties.forEach(saved => {
-    const property = propertyAt[saved.position];
+    const property = properties.find(p => p.name === saved.name) || propertyAt[legacy ? legacyPositionMap[saved.position] : saved.position];
     if (property) { property.owner = saved.owner; property.building = saved.building; }
   });
   state = { ...snapshot.state, gameId: game.id, gameName: game.name, phase: snapshot.state.phase === "decision" ? "choose" : snapshot.state.phase };
-  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id] }));
+  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id], position: legacy ? (legacyPositionMap[savedPlayer.position] ?? 0) : savedPlayer.position }));
   $("lobby-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   lastSyncedAt = new Date(); saveDirty = false; setSync("saved");
@@ -425,8 +464,8 @@ function renderBoard() {
   const cells = spaces.map((space, pos) => {
     const [row, col] = posToGrid(pos);
     const propertyClass = isProperty(space) ? `space-property ${space.owner !== null ? `owned owner-${space.owner}` : ""} ${space.building ? "has-building" : ""}` : "";
-    const roundClass = row === 1 ? (col === 1 ? "corner-tl" : col === 10 ? "corner-tr" : "") : row === 10 ? (col === 1 ? "corner-bl" : col === 10 ? "corner-br" : "") : "";
-    const typeClass = `space ${space.type || "property"} ${propertyClass} ${[0,9,18,27].includes(pos) ? "corner" : ""} ${roundClass}`;
+    const roundClass = row === 1 ? (col === 1 ? "corner-tl" : col === BOARD_COLS ? "corner-tr" : "") : row === BOARD_ROWS ? (col === 1 ? "corner-bl" : col === BOARD_COLS ? "corner-br" : "") : "";
+    const typeClass = `space ${space.type || "property"} ${propertyClass} ${cornerAt.includes(pos) ? "corner" : ""} ${roundClass}`;
     const kindTag = isProperty(space) ? "" : `<span class="space-kind">${spaceKind(space)}</span>`;
     const propertyBits = isProperty(space) ? `<span>${money(space.price)}</span><span>${money(space.rent)} rent</span>` : `<span>${space.label}</span>`;
     const boardArt = space.type === "chance" ? `<span class="chance-card-icon" aria-hidden="true"></span>` : `<span class="space-art" style="--art-col:${space.art % 6};--art-row:${Math.floor(space.art / 6)}" aria-hidden="true"></span>`;
@@ -451,9 +490,9 @@ function renderBoard() {
   const owners = spaces.map((space, pos) => {
     if (!isProperty(space) || space.owner === null) return "";
     const [row, col] = posToGrid(pos);
-    const edge = row === 1 ? "top" : row === 10 ? "bottom" : col === 1 ? "left" : "right";
-    const pipRow = edge === "top" ? 2 : edge === "bottom" ? 9 : row;
-    const pipCol = edge === "left" ? 2 : edge === "right" ? 9 : col;
+    const edge = row === 1 ? "top" : row === BOARD_ROWS ? "bottom" : col === 1 ? "left" : "right";
+    const pipRow = edge === "top" ? 2 : edge === "bottom" ? BOARD_ROWS - 1 : row;
+    const pipCol = edge === "left" ? 2 : edge === "right" ? BOARD_COLS - 1 : col;
     return `<i class="owner-pip owner-pip-${edge} ${space.building ? "owner-pip-built" : ""}" style="grid-row:${pipRow};grid-column:${pipCol};--pip-color:${state.players[space.owner].color}" aria-hidden="true"></i>`;
   }).join("");
 
@@ -539,8 +578,8 @@ function chooseSteps(steps) {
 }
 
 function movePlayer(p, steps, options = {}) {
-  const oldPosition = p.position; const raw = oldPosition + steps; p.position = ((raw % 36) + 36) % 36;
-  if (options.collectStart && (steps > 0 && raw >= 36)) { adjustCash(p, 200); log(`${p.name} passed Start and collected $200.`); }
+  const oldPosition = p.position; const raw = oldPosition + steps; p.position = ((raw % spaces.length) + spaces.length) % spaces.length;
+  if (options.collectStart && (steps > 0 && raw >= spaces.length)) { adjustCash(p, 200); log(`${p.name} passed Start and collected $200.`); }
   renderBoard(); renderPlayers();
   setTimeout(() => resolveSpace(p, options), 220);
 }
@@ -577,10 +616,10 @@ function applyChance(p, card) {
   if (card.effect === "cash") { adjustCash(p, card.amount); log(`${p.name}: ${card.title} (${money(card.amount)}).`); toast(`${card.amount >= 0 ? "Collected" : "Paid"} ${money(Math.abs(card.amount))}`); endTurn(); }
   if (card.effect === "start") { p.position = 0; adjustCash(p, 200); log(`${p.name} advanced to Start and collected $200.`); renderBoard(); endTurn(); }
   if (card.effect === "move") { log(`${p.name} moves back 3 spaces from a Chance card.`); movePlayer(p, card.amount, { collectStart: false, source: "chance" }); }
-  if (card.effect === "nearestStation") { const station = [6, 16].reduce((nearest, candidate) => ((candidate - p.position + 36) % 36) < ((nearest - p.position + 36) % 36) ? candidate : nearest, 6); p.position = station; log(`${p.name} used a free Transit pass to ${spaces[station].name}.`); renderBoard(); endTurn(); }
+  if (card.effect === "nearestStation") { const station = stationPositions.reduce((nearest, candidate) => ((candidate - p.position + spaces.length) % spaces.length) < ((nearest - p.position + spaces.length) % spaces.length) ? candidate : nearest, stationPositions[0]); p.position = station; log(`${p.name} used a free Transit pass to ${spaces[station].name}.`); renderBoard(); endTurn(); }
   if (card.effect === "jailPass") { p.jailPasses++; log(`${p.name} received a Get Out of Jail pass.`); toast("Get Out of Jail pass added."); endTurn(); }
   if (card.effect === "jail") sendToJail(p, "a Chance card");
-  if (card.effect === "goto") { p.position = card.target; log(`${p.name} advances to ${spaces[card.target].name}.`); renderBoard(); resolveSpace(p, { source: "chance" }); }
+  if (card.effect === "goto") { p.position = spaces.findIndex(s => s.name === card.targetName); log(`${p.name} advances to ${card.targetName}.`); renderBoard(); resolveSpace(p, { source: "chance" }); }
   renderAll();
 }
 
@@ -590,7 +629,7 @@ function resolveStation(p, options) {
   showDecision({ icon: "i-train", kicker: "Transit Station", title: "Catch the city line?", copy: `Pay $40 to travel directly to the other Transit Station. Your turn ends when you arrive.`, details: `<div class="space-summary"><i class="swatch" style="background:var(--violet)"></i><div><strong>${spaces[target].name}</strong><span>A fast route across the city.</span></div><strong class="money">$40</strong></div>`, actions: [{ label: "Stay here", action: () => { log(`${p.name} stayed at the Transit Station.`); closeDecision(); endTurn(); } }, { label: "Ride for $40", primary: true, action: () => { adjustCash(p, -40); p.position = target; log(`${p.name} rode the city line for $40.`); closeDecision(); renderBoard(); endTurn(); } }] });
 }
 
-function sendToJail(p, source) { p.position = 9; p.jailed = true; log(`${p.name} was sent to Jail by ${source}.`); toast(`${p.name} is in Jail.`); renderBoard(); renderPlayers(); endTurn(); }
+function sendToJail(p, source) { p.position = cornerAt[1]; p.jailed = true; log(`${p.name} was sent to Jail by ${source}.`); toast(`${p.name} is in Jail.`); renderBoard(); renderPlayers(); endTurn(); }
 
 function showJailDecision() {
   const p = player(); state.phase = "decision"; renderTurn();
