@@ -59,9 +59,45 @@ const posToGrid = (position) => {
 };
 
 let state = null;
-let timerId = null;
 let toastTimer = null;
+/* --- sync engine ------------------------------------------------------------ */
+const SYNC_LABEL = {
+  saved: "All changes saved", saving: "Saving…", pending: "Waiting to sync…",
+  offline: "Offline — changes held", error: "Sync problem", local: "Local game — not saved"
+};
 let saveTimer = null;
+let retryTimer = null;
+let retryDelay = 0;
+let saveDirty = false;
+let saveInFlight = false;
+let lastSyncedAt = null;
+let saveStatus = "active";
+
+function setSync(kind, detail) {
+  const el = $("save-status");
+  if (!el) return;
+  const text = detail || SYNC_LABEL[kind] || "";
+  el.className = `save-status sync-${kind}`;
+  el.innerHTML = `<i class="sync-dot" aria-hidden="true"></i><span>${escapeHtml(text)}</span>`;
+  el.title = kind === "saved" && lastSyncedAt ? `Last synced at ${lastSyncedAt.toLocaleTimeString()}` : text;
+}
+
+function canSync() { return Boolean(supabaseClient && authUser && state?.gameId); }
+
+function enterGameFullscreen() {
+  const root = document.documentElement;
+  if (document.fullscreenElement || !root.requestFullscreen) return;
+  const request = root.requestFullscreen({ navigationUI: "hide" });
+  if (request?.catch) request.catch(() => {});
+}
+
+function exitGameFullscreen() {
+  if (!document.fullscreenElement || !document.exitFullscreen) return;
+  const exit = document.exitFullscreen();
+  if (exit?.catch) exit.catch(() => {});
+}
+
+function resetSync() { clearTimeout(saveTimer); clearTimeout(retryTimer); saveTimer = null; retryTimer = null; retryDelay = 0; saveDirty = false; saveInFlight = false; saveStatus = "active"; }
 let supabaseClient = null;
 let authUser = null;
 let authMode = "signin";
@@ -95,9 +131,14 @@ function init() {
   $("sign-out-button").addEventListener("click", signOut);
   $("new-game-button").addEventListener("click", prepareNewGame);
   $("games-button").addEventListener("click", returnToLobby);
-  $("back-to-games-button").addEventListener("click", returnToLobby);
   $("save-game-button").addEventListener("click", () => saveGame(true));
   [$("decision-dialog"), $("rules-dialog"), $("trade-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
+  document.addEventListener("fullscreenchange", () => document.body.classList.toggle("is-fullscreen", Boolean(document.fullscreenElement)));
+  window.addEventListener("offline", () => { if (canSync()) setSync("offline"); });
+  window.addEventListener("online", () => { if (!canSync()) return; retryDelay = 0; if (saveDirty) saveGame(false); else setSync("saved"); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && saveDirty) saveGame(false); });
+  window.addEventListener("beforeunload", (event) => { if (!saveDirty || !canSync()) return; event.preventDefault(); event.returnValue = ""; });
+  initSpaceTips();
   configureSupabase();
 }
 
@@ -108,10 +149,11 @@ function renderNameFields(count) {
 
 async function startGame(event) {
   event.preventDefault();
+  enterGameFullscreen();
   const names = [...document.querySelectorAll(".name-input")].map((input, i) => input.value.trim() || `Group ${i + 1}`);
   const gameName = $("game-name").value.trim() || "My world tour";
   properties.forEach(p => { p.owner = null; p.building = false; });
-  state = { gameId: null, gameName, players: names.map((name, id) => ({ id, name, color: playerColors[id], animal: playerAnimals[id], cash: 1000, position: 0, jailed: false, jailPasses: 0, turns: 0 })), currentPlayer: 0, round: 1, phase: "choose", activity: ["The city is open. Every group begins with $1,000."], timeLeft: 7200, timerStarted: false, finishAfterRound: false, selectedProperty: null };
+  state = { gameId: null, gameName, players: names.map((name, id) => ({ id, name, color: playerColors[id], animal: playerAnimals[id], cash: 1000, position: 0, jailed: false, jailPasses: 0, turns: 0 })), currentPlayer: 0, round: 1, phase: "choose", activity: ["The city is open. Every group begins with $1,000."], finishAfterRound: false, selectedProperty: null };
   $("setup-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   renderAll();
@@ -120,8 +162,8 @@ async function startGame(event) {
 }
 
 function resetGame() {
-  if (timerId) clearInterval(timerId);
-  clearTimeout(saveTimer);
+  resetSync();
+  exitGameFullscreen();
   state = null;
   ["decision-dialog", "rules-dialog", "trade-dialog", "end-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
   $("play-screen").classList.add("hidden");
@@ -129,7 +171,8 @@ function resetGame() {
 }
 
 function showSetup() {
-  if (timerId) clearInterval(timerId);
+  resetSync();
+  exitGameFullscreen();
   state = null;
   $("auth-screen").classList.add("hidden");
   $("lobby-screen").classList.add("hidden");
@@ -149,7 +192,7 @@ async function configureSupabase() {
   const canConnect = config.url && config.anonKey && window.supabase?.createClient;
   if (!canConnect) {
     $("save-game-button").hidden = true;
-    $("save-status").textContent = "Local game";
+    setSync("local");
     return;
   }
   supabaseClient = window.supabase.createClient(config.url, config.anonKey);
@@ -220,8 +263,9 @@ async function showLobby() {
 
 async function returnToLobby() {
   if (!supabaseClient || !authUser) { showSetup(); return; }
-  if (state?.gameId) await saveGame(false);
-  if (timerId) clearInterval(timerId);
+  if (state?.gameId && !(await saveGame(false)) && !window.confirm("This game has changes that have not synced yet. Leave anyway?")) return;
+  resetSync();
+  exitGameFullscreen();
   state = null;
   showLobby();
 }
@@ -232,8 +276,17 @@ async function renderGameLibrary() {
   const { data: games, error } = await supabaseClient.from("monopoly_games").select("id, name, player_count, status, updated_at").order("updated_at", { ascending: false });
   if (error) { library.innerHTML = `<p class="empty-property">Couldn’t load your games: ${escapeHtml(error.message)}</p>`; return; }
   if (!games.length) { library.innerHTML = `<div class="empty-library"><span>🌍</span><h2>No cities yet</h2><p>Create your first world-landmark game to start building a saved collection.</p></div>`; return; }
-  library.innerHTML = games.map(game => `<article class="saved-game"><div><p class="eyebrow">${game.status === "complete" ? "Complete" : "In progress"}</p><h2>${escapeHtml(game.name)}</h2><p>${game.player_count} groups · saved ${new Date(game.updated_at).toLocaleString()}</p></div><button class="primary-button" type="button" data-game-id="${game.id}">Resume</button></article>`).join("");
-  library.querySelectorAll("[data-game-id]").forEach(button => button.addEventListener("click", () => loadCloudGame(button.dataset.gameId)));
+  library.innerHTML = games.map(game => `<article class="saved-game"><div><p class="eyebrow">${game.status === "complete" ? "Complete" : "In progress"}</p><h2>${escapeHtml(game.name)}</h2><p>${game.player_count} groups · saved ${new Date(game.updated_at).toLocaleString()}</p></div><div class="saved-game-actions"><button class="outline-button" type="button" data-delete-id="${game.id}" data-game-name="${escapeHtml(game.name)}">Delete</button><button class="primary-button" type="button" data-game-id="${game.id}">Resume</button></div></article>`).join("");
+  library.querySelectorAll("[data-game-id]").forEach(button => button.addEventListener("click", () => { enterGameFullscreen(); loadCloudGame(button.dataset.gameId); }));
+  library.querySelectorAll("[data-delete-id]").forEach(button => button.addEventListener("click", () => deleteCloudGame(button.dataset.deleteId, button.dataset.gameName)));
+}
+
+async function deleteCloudGame(gameId, gameName) {
+  if (!window.confirm(`Delete “${gameName}”? This permanently removes the saved game.`)) return;
+  const { error } = await supabaseClient.from("monopoly_games").delete().eq("id", gameId);
+  if (error) { toast(`Couldn’t delete that game: ${error.message}`); return; }
+  toast(`${gameName} was deleted.`);
+  renderGameLibrary();
 }
 
 function snapshotGame() {
@@ -244,28 +297,55 @@ function snapshotGame() {
 }
 
 async function createCloudGame() {
-  $("save-status").textContent = "Saving…";
+  setSync("saving");
   const { data, error } = await supabaseClient.from("monopoly_games").insert({
     owner_id: authUser.id, name: state.gameName, player_count: state.players.length, game_state: snapshotGame()
   }).select("id").single();
-  if (error) { $("save-status").textContent = "Cloud save unavailable"; toast(`Couldn’t create save: ${error.message}`); return; }
+  if (error) { setSync("error", "Cloud save unavailable"); toast(`Couldn’t create save: ${error.message}`); return; }
   state.gameId = data.id;
-  $("save-status").textContent = "Saved";
-  $("back-to-games-button").hidden = false;
+  lastSyncedAt = new Date();
+  saveDirty = false;
+  setSync("saved");
 }
 
-async function saveGame(showToast = false, status = "active") {
-  if (!supabaseClient || !authUser || !state?.gameId) return;
-  $("save-status").textContent = "Saving…";
-  const { error } = await supabaseClient.from("monopoly_games").update({ name: state.gameName, player_count: state.players.length, status, game_state: snapshotGame() }).eq("id", state.gameId);
-  $("save-status").textContent = error ? "Save failed" : "Saved";
-  if (showToast) toast(error ? `Couldn’t save: ${error.message}` : "Game saved to your account.");
+async function saveGame(showToast = false, status) {
+  if (status) saveStatus = status;
+  if (!canSync()) return true;
+  clearTimeout(saveTimer); clearTimeout(retryTimer);
+  if (saveInFlight) { saveDirty = true; return false; }
+  if (!navigator.onLine) { saveDirty = true; setSync("offline"); if (showToast) toast("You are offline. Changes are held until the connection returns."); return false; }
+
+  saveInFlight = true;
+  saveDirty = false;
+  setSync("saving");
+  const { error } = await supabaseClient.from("monopoly_games").update({ name: state.gameName, player_count: state.players.length, status: saveStatus, game_state: snapshotGame() }).eq("id", state.gameId);
+  saveInFlight = false;
+
+  if (error) {
+    saveDirty = true;
+    retryDelay = Math.min(retryDelay ? retryDelay * 2 : 2000, 30000);
+    setSync("error", `Sync failed — retrying in ${Math.round(retryDelay / 1000)}s`);
+    retryTimer = setTimeout(() => saveGame(false), retryDelay);
+    if (showToast) toast(`Couldn’t sync: ${error.message}`);
+    return false;
+  }
+
+  retryDelay = 0;
+  lastSyncedAt = new Date();
+  if (saveDirty) { queueSave(); return false; }
+  setSync("saved");
+  if (showToast) toast("Game synced to your account.");
+  return true;
 }
 
 function queueSave() {
-  if (!state?.gameId) return;
+  if (!canSync()) return;
+  saveDirty = true;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => saveGame(false), 500);
+  if (!navigator.onLine) { setSync("offline"); return; }
+  if (saveInFlight) return;
+  setSync("pending");
+  saveTimer = setTimeout(() => saveGame(false), 800);
 }
 
 async function loadCloudGame(gameId) {
@@ -281,8 +361,7 @@ async function loadCloudGame(gameId) {
   state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id] }));
   $("lobby-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
-  $("back-to-games-button").hidden = false;
-  $("save-status").textContent = "Saved";
+  lastSyncedAt = new Date(); saveDirty = false; setSync("saved");
   renderAll();
   toast(`${state.gameName} resumed.`);
 }
@@ -291,22 +370,94 @@ function renderAll() {
   renderBoard(); renderToolbar(); renderTurn(); renderPlayers(); renderPropertyPanel(); renderActivity();
 }
 
+const spaceKindLabel = { start: "Start", chance: "Chance", tax: "Tax", station: "Transit", jail: "Jail", parking: "Rest", "go-jail": "Jail" };
+
+function spaceKind(space) { return isProperty(space) ? "Landmark" : (spaceKindLabel[space.type] || "City"); }
+
+function hideSpaceTip() { const tip = $("space-tip"); if (tip) tip.hidden = true; }
+
+function spaceTipHtml(pos) {
+  const space = spaces[pos];
+  const here = state.players.filter(p => p.position === pos);
+  const standing = here.length
+    ? `<p class="tip-here">${here.map(p => `<span class="tip-chip" style="--chip:${p.color}">${p.animal.icon} ${escapeHtml(p.name)}</span>`).join("")}</p>`
+    : "";
+  const head = `<p class="tip-kind">${spaceKind(space)}</p><h4>${escapeHtml(space.name)}</h4>`;
+  if (!isProperty(space)) return `${head}<p class="tip-note">${escapeHtml(space.label)}</p>${standing}`;
+
+  const owned = space.owner !== null;
+  const owner = owned
+    ? `<p class="tip-owner" style="--chip:${state.players[space.owner].color}">${escapeHtml(state.players[space.owner].name)}</p>`
+    : `<p class="tip-owner tip-open">Open — no owner yet</p>`;
+  const rent = space.rent * (space.building ? 2 : 1);
+  return `${head}${owner}<div class="tip-stats"><span>Price<strong>${money(space.price)}</strong></span><span>Rent<strong>${money(rent)}</strong></span></div>${space.building ? `<p class="tip-note">City Upgrade built — rent is doubled.</p>` : ""}${standing}`;
+}
+
+function showSpaceTip(cell, pos) {
+  const tip = $("space-tip");
+  if (!tip || !state) return;
+  tip.innerHTML = spaceTipHtml(pos);
+  tip.hidden = false;
+  const rect = cell.getBoundingClientRect();
+  const box = tip.getBoundingClientRect();
+  const left = Math.max(10, Math.min(rect.left + rect.width / 2 - box.width / 2, window.innerWidth - box.width - 10));
+  const above = rect.top - box.height - 12;
+  tip.style.left = `${left}px`;
+  tip.style.top = `${above < 10 ? rect.bottom + 12 : above}px`;
+}
+
+function initSpaceTips() {
+  const board = $("game-board");
+  board.addEventListener("mouseover", (event) => {
+    const host = event.target.closest("[data-pos]");
+    if (!host) { hideSpaceTip(); return; }
+    const pos = Number(host.dataset.pos);
+    if (!Number.isInteger(pos)) { hideSpaceTip(); return; }
+    showSpaceTip(board.querySelector(`.space[data-pos="${pos}"]`) || host, pos);
+  });
+  board.addEventListener("mouseleave", hideSpaceTip);
+  window.addEventListener("scroll", hideSpaceTip, { passive: true });
+}
+
 function renderBoard() {
   const board = $("game-board");
+  hideSpaceTip();
   const cells = spaces.map((space, pos) => {
     const [row, col] = posToGrid(pos);
     const propertyClass = isProperty(space) ? `space-property ${space.owner !== null ? `owned owner-${space.owner}` : ""} ${space.building ? "has-building" : ""}` : "";
-    const typeClass = `space ${space.type || "property"} ${propertyClass} ${[0,9,18,27].includes(pos) ? "corner" : ""}`;
-    const kind = isProperty(space) ? "Landmark" : ({ start: "Start", chance: "Chance", tax: "Tax", station: "Transit", jail: "Jail", parking: "Rest", "go-jail": "Jail" }[space.type] || "City");
+    const roundClass = row === 1 ? (col === 1 ? "corner-tl" : col === 10 ? "corner-tr" : "") : row === 10 ? (col === 1 ? "corner-bl" : col === 10 ? "corner-br" : "") : "";
+    const typeClass = `space ${space.type || "property"} ${propertyClass} ${[0,9,18,27].includes(pos) ? "corner" : ""} ${roundClass}`;
+    const kindTag = isProperty(space) ? "" : `<span class="space-kind">${spaceKind(space)}</span>`;
     const propertyBits = isProperty(space) ? `<span>${money(space.price)}</span><span>${money(space.rent)} rent</span>` : `<span>${space.label}</span>`;
-    const boardArt = space.type === "chance" ? `<span class="chance-card-icon" aria-hidden="true">${icon("i-card")}</span>` : `<span class="space-art" style="--art-col:${space.art % 6};--art-row:${Math.floor(space.art / 6)}" aria-hidden="true"></span>`;
-    const tokens = state.players.filter(p => p.position === pos).map(p => `<button class="token ${p.jailed ? "jailed" : ""} ${p.id === state.currentPlayer && state.phase === "choose" ? "token-active" : ""}" type="button" data-player-id="${p.id}" style="--token-color:${p.color}" aria-label="${escapeHtml(p.name)}, the ${p.animal.name}${p.jailed ? ", is in Jail" : ""}${p.id === state.currentPlayer && state.phase === "choose" ? ". Choose movement" : ""}" title="${escapeHtml(p.name)} · ${p.animal.name}">${p.animal.icon}</button>`).join("");
-    return `<article class="${typeClass}" style="grid-row:${row};grid-column:${col};${isProperty(space) ? `--space-color:${space.color};` : ""}" role="gridcell" aria-label="${escapeHtml(space.name)}${isProperty(space) ? `, price ${money(space.price)}, rent ${money(space.rent)}` : `, ${space.label}`}">
-      <div class="space-top"><span class="space-index">${String(pos).padStart(2, "0")}</span><span class="space-kind">${kind}</span></div>
-      ${boardArt}<strong class="space-name">${escapeHtml(space.name)}</strong><div class="space-meta">${propertyBits}</div><i class="building-mini" aria-hidden="true"></i><div class="token-rack" aria-label="Players on ${escapeHtml(space.name)}">${tokens}</div>
+    const boardArt = space.type === "chance" ? `<span class="chance-card-icon" aria-hidden="true"></span>` : `<span class="space-art" style="--art-col:${space.art % 6};--art-row:${Math.floor(space.art / 6)}" aria-hidden="true"></span>`;
+    return `<article class="${typeClass}" data-pos="${pos}" style="grid-row:${row};grid-column:${col};${isProperty(space) ? `--space-color:${space.color};` : ""}" role="gridcell" aria-label="${escapeHtml(space.name)}${isProperty(space) ? `, price ${money(space.price)}, rent ${money(space.rent)}` : `, ${space.label}`}">
+      <div class="space-top"><span class="space-index">${String(pos).padStart(2, "0")}</span>${kindTag}</div>
+      ${boardArt}<strong class="space-name">${escapeHtml(space.name)}</strong><div class="space-meta">${propertyBits}</div><i class="building-mini" aria-hidden="true"></i>
     </article>`;
   }).join("");
-  board.innerHTML = `${cells}<section class="city-center" aria-label="City Fortune"><div class="city-skyline" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="center-content"><p class="eyebrow">Buy · trade · build</p><h1 class="center-title">CITY<span>FORTUNE</span></h1><p class="center-subtitle">The race to own the world's landmarks</p></div></section>`;
+
+  // Tokens live in their own grid-positioned layer, not inside .space — a space
+  // clips and isolates, which would flatten the pieces back onto the board plane.
+  const racks = spaces.map((space, pos) => {
+    const here = state.players.filter(p => p.position === pos);
+    if (!here.length) return "";
+    const [row, col] = posToGrid(pos);
+    const tokens = here.map(p => `<button class="token ${p.jailed ? "jailed" : ""} ${p.id === state.currentPlayer && state.phase === "choose" ? "token-active" : ""}" type="button" data-player-id="${p.id}" style="--token-color:${p.color}" aria-label="${escapeHtml(p.name)}, the ${p.animal.name}${p.jailed ? ", is in Jail" : ""}${p.id === state.currentPlayer && state.phase === "choose" ? ". Choose movement" : ""}" title="${escapeHtml(p.name)} · ${p.animal.name}">${p.animal.icon}</button>`).join("");
+    return `<div class="token-rack" data-pos="${pos}" style="grid-row:${row};grid-column:${col}" aria-label="Players on ${escapeHtml(space.name)}">${tokens}</div>`;
+  }).join("");
+
+  // Ownership pips sit in the first inner cell next to their space, so a piece
+  // standing on the square can never hide who owns it.
+  const owners = spaces.map((space, pos) => {
+    if (!isProperty(space) || space.owner === null) return "";
+    const [row, col] = posToGrid(pos);
+    const edge = row === 1 ? "top" : row === 10 ? "bottom" : col === 1 ? "left" : "right";
+    const pipRow = edge === "top" ? 2 : edge === "bottom" ? 9 : row;
+    const pipCol = edge === "left" ? 2 : edge === "right" ? 9 : col;
+    return `<i class="owner-pip owner-pip-${edge} ${space.building ? "owner-pip-built" : ""}" style="grid-row:${pipRow};grid-column:${pipCol};--pip-color:${state.players[space.owner].color}" aria-hidden="true"></i>`;
+  }).join("");
+
+  board.innerHTML = `${cells}<section class="city-center" aria-label="City Fortune"><div class="center-plaque"><p class="center-eyebrow">Buy · Trade · Build</p><h1 class="center-title">CITY<span>FORTUNE</span></h1></div><div class="center-dice" aria-hidden="true"><span class="die die-a"><i></i><i></i><i></i></span><span class="die die-b"><i></i><i></i><i></i><i></i></span></div></section>${racks}${owners}`;
   board.querySelectorAll(".token").forEach(token => token.addEventListener("click", () => {
     const selected = state.players[Number(token.dataset.playerId)];
     if (selected.id !== state.currentPlayer) { toast(`It is ${player().name}'s turn.`); return; }
@@ -319,8 +470,6 @@ function renderToolbar() {
   $("current-player-label").textContent = current.name;
   $("status-dot").style.background = current.color;
   $("status-dot").style.boxShadow = `0 0 0 5px ${current.color}2d`;
-  const h = Math.floor(state.timeLeft / 3600); const m = Math.floor((state.timeLeft % 3600) / 60); const s = state.timeLeft % 60;
-  $("timer").textContent = `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   $("round-display").textContent = String(state.round).padStart(2, "0");
   $("time-callout").classList.toggle("hidden", !state.finishAfterRound);
   $("call-time-button").disabled = state.finishAfterRound;
@@ -361,17 +510,16 @@ function renderPropertyPanel() {
   const owner = prop.owner === null ? "Open to buy" : state.players[prop.owner].name;
   const cost = buildingCost(prop);
   const canDevelop = prop.owner === player().id && !prop.building && state.phase === "choose";
-  content.innerHTML = `<div class="property-detail" style="--detail-color:${prop.color}"><div class="property-detail-head"><span class="property-swatch"></span><div><h3>${escapeHtml(prop.name)}</h3><p>${escapeHtml(owner)}${prop.building ? " · City Upgrade added" : ""}</p></div></div><div class="property-stat-row"><div class="property-stat"><span>Value</span><strong>${money(prop.price)}</strong></div><div class="property-stat"><span>Rent</span><strong>${money(prop.rent * (prop.building ? 2 : 1))}</strong></div><div class="property-stat"><span>Upgrade</span><strong>${prop.building ? "Built" : money(cost)}</strong></div></div>${canDevelop ? `<button class="outline-button develop-button" id="develop-button" type="button">${icon("i-build")} Add City Upgrade · ${money(cost)}</button>` : ""}</div>`;
+  content.innerHTML = `<div class="property-detail" style="--detail-color:${prop.color}"><div class="property-detail-head"><span class="property-swatch"></span><div><h3>${escapeHtml(prop.name)}</h3><p>${escapeHtml(owner)}${prop.building ? " · City Upgrade added" : ""}</p></div></div><div class="property-stat-row"><div class="property-stat"><span>Value</span><strong>${money(prop.price)}</strong></div><div class="property-stat"><span>Rent</span><strong>${money(prop.rent * (prop.building ? 2 : 1))}</strong></div><div class="property-stat"><span>Upgrade</span><strong>${prop.building ? "Built" : money(cost)}</strong></div></div>${canDevelop ? `<button class="outline-button develop-button" id="develop-button" type="button">Upgrade for ${money(cost)}</button>` : ""}</div>`;
   if (canDevelop) $("develop-button").addEventListener("click", () => developProperty(prop));
 }
 
 function renderActivity() { $("activity-log").innerHTML = state.activity.slice(0, 7).map(item => `<li>${escapeHtml(item)}</li>`).join(""); }
-function log(message) { state.activity.unshift(message); renderActivity(); }
+function log(message) { state.activity.unshift(message); renderActivity(); queueSave(); }
 function toast(message) { const region = $("toast-region"); region.innerHTML = `<div class="toast">${escapeHtml(message)}</div>`; clearTimeout(toastTimer); toastTimer = setTimeout(() => { region.innerHTML = ""; }, 3600); }
 function escapeHtml(text) { return String(text).replace(/[&<>'"]/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#039;", '"':"&quot;" }[char])); }
 
-function startTimer() { if (state.timerStarted) return; state.timerStarted = true; timerId = setInterval(() => { if (!state || state.timeLeft <= 0) return; state.timeLeft--; renderToolbar(); if (state.timeLeft === 0) { clearInterval(timerId); callTime(); } }, 1000); }
-function callTime() { state.finishAfterRound = true; log("The two-hour city clock has ended. Complete the round."); toast("Time is up — finish the current round."); renderToolbar(); queueSave(); }
+function callTime() { state.finishAfterRound = true; log("Time was called. Complete the round."); toast("Time called — finish the current round."); renderToolbar(); queueSave(); }
 
 function openStepChooser() {
   if (state.phase !== "choose") return;
@@ -383,7 +531,6 @@ function openStepChooser() {
 
 function chooseSteps(steps) {
   if (state.phase !== "choose") return;
-  startTimer();
   const p = player();
   state.phase = "moving"; renderTurn();
   closeDecision();
@@ -459,7 +606,7 @@ function showDecision({ icon: iconName, kicker, title, copy, details = "", actio
   $("decision-dialog").showModal();
 }
 function closeDecision() { if ($("decision-dialog").open) $("decision-dialog").close(); }
-function adjustCash(p, amount) { p.cash += amount; renderPlayers(); }
+function adjustCash(p, amount) { p.cash += amount; renderPlayers(); queueSave(); }
 
 function developProperty(prop) {
   const p = player(); const cost = buildingCost(prop); if (prop.owner !== p.id || prop.building) return;
@@ -489,7 +636,7 @@ function submitTrade(event) {
 }
 
 function endGame() {
-  if (timerId) clearInterval(timerId); const scores = state.players.map(p => ({ ...p, wealth: totalWealth(p), propertyValue: properties.filter(x => x.owner === p.id).reduce((sum, x) => sum + propertyWorth(x), 0) })).sort((a, b) => b.wealth - a.wealth);
+  const scores = state.players.map(p => ({ ...p, wealth: totalWealth(p), propertyValue: properties.filter(x => x.owner === p.id).reduce((sum, x) => sum + propertyWorth(x), 0) })).sort((a, b) => b.wealth - a.wealth);
   const winner = scores[0]; $("winner-message").textContent = `${winner.name} takes the city with ${money(winner.wealth)} in total wealth.`;
   $("scoreboard").innerHTML = scores.map((p, i) => `<div class="score-row"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>Cash ${money(p.cash)} · City value ${money(p.propertyValue)}</small></div><strong class="score-wealth ${p.wealth < 0 ? "negative" : ""}">${money(p.wealth)}</strong></div>`).join("");
   saveGame(false, "complete");

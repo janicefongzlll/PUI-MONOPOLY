@@ -88,7 +88,7 @@
           </fieldset>
           <div class="player-name-fields" id="player-name-fields"></div>
           <button class="primary-button setup-submit" type="submit"><span>Start City Fortune</span><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>
-          <p class="setup-note">Every group starts with <strong>$1,000</strong>. The city clock starts after the first move.</p>
+          <p class="setup-note">Every group starts with <strong>$1,000</strong>.</p>
         </form>
       </section>
 
@@ -98,16 +98,11 @@
             <span class="status-dot" id="status-dot"></span>
             <div><p class="small-label">Now playing</p><strong id="current-player-label">Group 1</strong></div>
           </div>
-          <div class="clock" aria-live="polite">
-            <svg aria-hidden="true"><use href="#i-flag"></use></svg>
-            <span class="small-label">City clock</span>
-            <strong id="timer">2:00:00</strong>
-          </div>
           <div class="round-chip"><span class="small-label">Round</span><strong id="round-display">01</strong></div>
-          <div class="game-toolbar-actions"><span class="save-status" id="save-status" aria-live="polite"></span><button class="outline-button" id="save-game-button" type="button">Save game</button><button class="outline-button" id="back-to-games-button" type="button" hidden>My games</button><button class="outline-button" id="call-time-button" type="button">Call time</button></div>
+          <div class="game-toolbar-actions"><span class="save-status" id="save-status" aria-live="polite"></span><button class="outline-button" id="save-game-button" type="button">Save now</button><button class="outline-button" id="call-time-button" type="button">Call time</button></div>
         </div>
 
-        <p class="time-callout hidden" id="time-callout" role="status">Time is up. Finish this round so every group takes the same number of turns.</p>
+        <p class="time-callout hidden" id="time-callout" role="status">Time was called. Finish this round so every group takes the same number of turns.</p>
 
         <div class="game-layout">
           <section class="board-shell" aria-label="36 space City Fortune board">
@@ -192,5 +187,6 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
+      <div class="space-tip" id="space-tip" role="tooltip" hidden></div>
   </body>
 </html>
