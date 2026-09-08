@@ -66,15 +66,27 @@ export class BoardResources {
 // Repeated city geometry is batched by material to keep mobile draw calls low.
 export class StaticCityBatch {
   constructor(resources) { this.resources = resources; this.batches = new Map(); this.dummy = new THREE.Object3D(); }
-  add(kind, color, position, scale, rotation = 0) {
-    const key = `${kind}/${color}`;
-    if (!this.batches.has(key)) this.batches.set(key, { kind, color, transforms: [] });
-    this.dummy.position.set(...position); this.dummy.scale.set(...scale); this.dummy.rotation.set(0, rotation, 0); this.dummy.updateMatrix();
+  add(kind, color, position, scale, rotation = 0, surface = 'default') {
+    const key = `${kind}/${color}/${surface}`;
+    if (!this.batches.has(key)) this.batches.set(key, { kind, color, surface, transforms: [] });
+    this.dummy.position.set(...position); this.dummy.scale.set(...scale);
+    if (Array.isArray(rotation)) this.dummy.quaternion.set(...rotation); else this.dummy.rotation.set(0, rotation, 0);
+    this.dummy.updateMatrix();
     this.batches.get(key).transforms.push(this.dummy.matrix.clone());
   }
   build(parent) {
-    this.batches.forEach(({ kind, color, transforms }) => {
-      const mesh = new THREE.InstancedMesh(this.resources.geometry(kind), this.resources.material(color), transforms.length);
+    this.batches.forEach(({ kind, color, surface, transforms }) => {
+      const materialKey = `landmark/${color}/${surface}`;
+      let material;
+      if (surface !== 'default') {
+        if (!this.resources.materials.has(materialKey)) this.resources.materials.set(materialKey,new THREE.MeshStandardMaterial({
+          color, metalness: surface === 'metal' ? .55 : surface === 'glass' ? .3 : .06,
+          roughness: surface === 'glass' ? .24 : surface === 'metal' ? .38 : .72,
+          emissive: surface === 'lit' ? color : '#000000', emissiveIntensity: surface === 'lit' ? .22 : 0
+        }));
+        material = this.resources.materials.get(materialKey);
+      } else material = this.resources.material(color);
+      const mesh = new THREE.InstancedMesh(this.resources.geometry(kind), material, transforms.length);
       transforms.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
       mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh);
     });
