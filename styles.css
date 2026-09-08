@@ -289,6 +289,10 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 
 /* City ledger shows the player avatar instead of a colour dot --------------------- */
 .player-row { grid-template-columns: 28px minmax(0, 1fr) auto; }
+/* A bankrupt group stays listed, greyed out, so the table can see who is left. */
+.player-row.is-out { opacity: .5; filter: grayscale(1); }
+.player-row.is-out .player-cash, .score-row.score-out .score-wealth { color: var(--muted); font-variant-caps: all-small-caps; letter-spacing: .06em; }
+.score-row.score-out { opacity: .62; filter: grayscale(1); }
 .player-avatar { display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid var(--avatar-color); border-radius: 50%; background: color-mix(in srgb, var(--avatar-color) 18%, #fff); font-size: 15px; line-height: 1; }
 .player-row.active .player-avatar { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--avatar-color); }
 

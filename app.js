@@ -195,6 +195,7 @@ const isProperty = (space) => Object.prototype.hasOwnProperty.call(space, "price
 const buildingCost = (property) => Math.ceil(property.price / 2 / 10) * 10;
 const propertyWorth = (property) => property.price + (property.building ? buildingCost(property) : 0);
 const totalWealth = (p) => p.cash + properties.filter(x => x.owner === p.id).reduce((sum, x) => sum + propertyWorth(x), 0);
+const activePlayers = () => state.players.filter(p => !p.out);
 const icon = (name) => `<svg aria-hidden="true"><use href="#${name}"></use></svg>`;
 
 function init() {
@@ -271,7 +272,7 @@ async function startGame(event) {
   const chosen = [...document.querySelectorAll(".avatar-picker")].map(g => playerAnimals[Number(g.querySelector("input:checked").value)]);
   const gameName = $("game-name").value.trim() || "My world tour";
   properties.forEach(p => { p.owner = null; p.building = false; });
-  state = { gameId: null, gameName, players: names.map((name, id) => ({ id, name, color: playerColors[id], animal: chosen[id] || playerAnimals[id], cash: 1000, position: 0, jailed: false, jailPasses: 0, turns: 0 })), currentPlayer: 0, round: 1, phase: "choose", activity: ["The city is open. Every group begins with $1,000."], finishAfterRound: false, pending: null };
+  state = { gameId: null, gameName, players: names.map((name, id) => ({ id, name, color: playerColors[id], animal: chosen[id] || playerAnimals[id], cash: 1000, position: 0, jailed: false, jailPasses: 0, turns: 0, out: false })), currentPlayer: 0, round: 1, phase: "choose", activity: ["The city is open. Every group begins with $1,000."], finishAfterRound: false, pending: null };
   $("setup-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   renderAll();
@@ -492,7 +493,7 @@ async function loadCloudGame(gameId) {
     if (property) { property.owner = saved.owner; property.building = saved.building; }
   });
   state = { ...snapshot.state, gameId: game.id, gameName: game.name };
-  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id % playerAnimals.length], position: remapPos(savedPlayer.position) }));
+  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id % playerAnimals.length], position: remapPos(savedPlayer.position), out: Boolean(savedPlayer.out) || savedPlayer.cash < 0 }));
   if (remap && state.pending) {
     if (Array.isArray(state.pending.route)) state.pending.route = state.pending.route.map(remapPos);
     if (state.pending.pos !== undefined) state.pending.pos = remapPos(state.pending.pos);
@@ -585,7 +586,7 @@ function renderBoard() {
   // Tokens live in their own grid-positioned layer, not inside .space — a space
   // clips and isolates, which would flatten the pieces back onto the board plane.
   const racks = spaces.map((space, pos) => {
-    const here = state.players.filter(p => p.position === pos);
+    const here = state.players.filter(p => p.position === pos && !p.out);
     if (!here.length) return "";
     const [row, col] = posToGrid(pos);
     const tokens = here.map(p => `<button class="token ${p.jailed ? "jailed" : ""} ${p.id === state.currentPlayer && state.phase === "choose" ? "token-active" : ""}" type="button" data-player-id="${p.id}" style="--token-color:${p.color}" aria-label="${escapeHtml(p.name)}, the ${p.animal.name}${p.jailed ? ", is in Jail" : ""}${p.id === state.currentPlayer && state.phase === "choose" ? ". Choose movement" : ""}" title="${escapeHtml(p.name)} · ${p.animal.name}">${avatarArt(p.animal)}</button>`).join("");
@@ -630,7 +631,7 @@ function renderTurn() {
   if (state.phase === "choose") {
     prompt.innerHTML = `<strong>${avatarArt(p.animal, "avatar-inline")} ${escapeHtml(p.name)}, choose your move.</strong><span>Click your ${p.animal.name} token on the board, then select 1–6 steps.</span>`;
     const here = spaces[p.position];
-    const canUpgrade = isProperty(here) && here.owner === p.id && !here.building;
+    const canUpgrade = isProperty(here) && here.owner === p.id && !here.building && p.cash >= buildingCost(here);
     actions.innerHTML = `<button class="primary-button" id="choose-steps-button" type="button"><span>Choose 1–6 steps</span></button>${canUpgrade ? `<button class="outline-button" id="develop-button" type="button">Upgrade ${escapeHtml(here.name)} · ${money(buildingCost(here))}</button>` : ""}`;
     $("choose-steps-button").addEventListener("click", openStepChooser);
     if (canUpgrade) $("develop-button").addEventListener("click", () => developProperty(here));
@@ -651,7 +652,7 @@ function renderPlayers() {
   $("turn-spotlight").innerHTML = `<div class="spotlight-avatar" style="--avatar-color:${turn.color}">${avatarArt(turn.animal)}</div><div class="spotlight-text"><p class="eyebrow">Now playing</p><strong>${escapeHtml(turn.name)}</strong><span>${turn.animal.name}</span></div>`;
   $("player-list").innerHTML = state.players.map(p => {
     const owned = properties.filter(prop => prop.owner === p.id); const upgrades = owned.filter(prop => prop.building).length;
-    return `<div class="player-row ${p.id === state.currentPlayer ? "active" : ""}"><span class="player-avatar" style="--avatar-color:${p.color}" title="${escapeHtml(p.animal.name)}">${avatarArt(p.animal)}</span><div><div class="player-name">${escapeHtml(p.name)}</div><div class="player-portfolio">${owned.length} properties${upgrades ? ` · ${upgrades} upgrade${upgrades === 1 ? "" : "s"}` : ""}${p.jailPasses ? ` · ${p.jailPasses} pass` : ""}</div></div><strong class="player-cash ${p.cash < 0 ? "negative" : ""}">${money(p.cash)}</strong></div>`;
+    return `<div class="player-row ${p.out ? "is-out" : ""} ${p.id === state.currentPlayer && !p.out ? "active" : ""}"><span class="player-avatar" style="--avatar-color:${p.color}" title="${escapeHtml(p.animal.name)}">${avatarArt(p.animal)}</span><div><div class="player-name">${escapeHtml(p.name)}</div><div class="player-portfolio">${p.out ? "Bankrupt — out of the game" : `${owned.length} properties${upgrades ? ` · ${upgrades} upgrade${upgrades === 1 ? "" : "s"}` : ""}${p.jailPasses ? ` · ${p.jailPasses} pass` : ""}`}</div></div><strong class="player-cash">${p.out ? "Out" : money(p.cash)}</strong></div>`;
   }).join("");
 }
 
@@ -761,7 +762,7 @@ function resolveSpace(p, options = {}) {
   const space = spaces[p.position];
   if (isProperty(space)) { resolveProperty(p, space); return; }
   if (space.type === "start") { log(`${p.name} lands on Start.`); endTurn(); }
-  else if (space.type === "tax") { adjustCash(p, -space.amount); log(`${p.name} paid ${money(space.amount)} for ${space.name}.`); toast(`${space.name}: ${money(space.amount)}`); endTurn(); }
+  else if (space.type === "tax") { if (chargeCash(p, space.amount)) { log(`${p.name} paid ${money(space.amount)} for ${space.name}.`); toast(`${space.name}: ${money(space.amount)}`); } endTurn(); }
   else if (space.type === "chance") drawChance(p);
   else if (space.type === "station") resolveStation(p, options);
   else if (space.type === "go-jail") sendToJail(p, "Go to Jail");
@@ -817,11 +818,13 @@ function showChallengeDecision(p, prop) {
 function payRent(p, prop, multiplier = 1, viaChallenge = false) {
   const owner = state.players[prop.owner];
   const rent = rentOf(prop) * multiplier;
-  adjustCash(p, -rent); adjustCash(owner, rent);
-  log(viaChallenge
-    ? `${owner.name} won the mini game. ${p.name} paid double rent, ${money(rent)}, for ${prop.name}.`
-    : `${p.name} paid ${money(rent)} rent to ${owner.name} for ${prop.name}.`);
-  toast(viaChallenge ? `Challenge lost — ${money(rent)} double rent` : `${money(rent)} rent paid to ${owner.name}`);
+  // Whatever they have goes to the owner; a shortfall ends their game.
+  if (chargeCash(p, rent, owner)) {
+    log(viaChallenge
+      ? `${owner.name} won the mini game. ${p.name} paid double rent, ${money(rent)}, for ${prop.name}.`
+      : `${p.name} paid ${money(rent)} rent to ${owner.name} for ${prop.name}.`);
+    toast(viaChallenge ? `Challenge lost — ${money(rent)} double rent` : `${money(rent)} rent paid to ${owner.name}`);
+  }
   renderPlayers(); endTurn();
 }
 
@@ -834,7 +837,12 @@ function winChallenge(p, prop) {
 
 function showPurchaseDecision(p, prop) {
   state.phase = "decision"; setPending({ kind: "purchase", player: p.id, pos: prop.position }); renderTurn();
-  showDecision({ icon: "i-build", kicker: "Open city block", title: `${prop.name} is available`, copy: `Buy this address to add it to ${p.name}’s city portfolio. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions: [{ label: `Buy for ${money(prop.price)}`, primary: true, action: () => { adjustCash(p, -prop.price); prop.owner = p.id; log(`${p.name} bought ${prop.name} for ${money(prop.price)}.`); toast(`${prop.name} is now yours.`); closeDecision(); endTurn(); } }, { label: "Pass on this property", action: () => { log(`${p.name} left ${prop.name} open for another group.`); closeDecision(); endTurn(); } }] });
+  const affordable = p.cash >= prop.price;
+  const actions = [];
+  // No buying into debt: without the full price the only move is to walk away.
+  if (affordable) actions.push({ label: `Buy for ${money(prop.price)}`, primary: true, action: () => { adjustCash(p, -prop.price); prop.owner = p.id; log(`${p.name} bought ${prop.name} for ${money(prop.price)}.`); toast(`${prop.name} is now yours.`); closeDecision(); endTurn(); } });
+  actions.push({ label: affordable ? "Pass on this property" : "Leave it — not enough cash", primary: !affordable, action: () => { log(`${p.name} left ${prop.name} open for another group.`); closeDecision(); endTurn(); } });
+  showDecision({ icon: "i-build", kicker: "Open city block", title: `${prop.name} is available`, copy: affordable ? `Buy this address to add it to ${p.name}’s city portfolio. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.` : `${p.name} holds ${money(p.cash)} and cannot cover the ${money(prop.price)} price. The block stays open.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions });
 }
 
 function drawChance(p) {
@@ -848,7 +856,12 @@ function showChanceCard(p, index) {
 }
 
 function applyChance(p, card) {
-  if (card.effect === "cash") { adjustCash(p, card.amount); log(`${p.name}: ${card.title} (${money(card.amount)}).`); toast(`${card.amount >= 0 ? "Collected" : "Paid"} ${money(Math.abs(card.amount))}`); endTurn(); }
+  if (card.effect === "cash") {
+    let settled = true;
+    if (card.amount < 0) settled = chargeCash(p, -card.amount); else adjustCash(p, card.amount);
+    if (settled) { log(`${p.name}: ${card.title} (${money(card.amount)}).`); toast(`${card.amount >= 0 ? "Collected" : "Paid"} ${money(Math.abs(card.amount))}`); }
+    endTurn();
+  }
   if (card.effect === "start") return travelPlayer(p, forwardRoute(p.position, 0), { collectStart: false, direction: 1 }, { kind: "chance-start" });
   if (card.effect === "move") { log(`${p.name} moves back 3 spaces from a Chance card.`); return movePlayer(p, card.amount, { collectStart: false, source: "chance" }); }
   if (card.effect === "nearestStation") { const station = stationPositions.reduce((nearest, candidate) => ((candidate - p.position + spaces.length) % spaces.length) < ((nearest - p.position + spaces.length) % spaces.length) ? candidate : nearest, stationPositions[0]); return travelPlayer(p, forwardRoute(p.position, station), { collectStart: false, direction: 1 }, { kind: "transit-pass" }); }
@@ -865,16 +878,20 @@ function resolveStation(p, options) {
 
 function showStationDecision(p, target) {
   state.phase = "decision"; setPending({ kind: "station", player: p.id, target }); renderTurn();
-  showDecision({ icon: "i-train", kicker: "Transit Station", title: "Catch the city line?", copy: `Pay $40 to travel directly to the other Transit Station. Your turn ends when you arrive.`, details: `<div class="space-summary"><i class="swatch" style="background:var(--violet)"></i><div><strong>${spaces[target].name}</strong><span>A fast route across the city.</span></div><strong class="money">$40</strong></div>`, actions: [{ label: "Stay here", action: () => { log(`${p.name} stayed at the Transit Station.`); closeDecision(); endTurn(); } }, { label: "Ride for $40", primary: true, action: () => { adjustCash(p, -40); closeDecision(); return travelPlayer(p, [target], { collectStart: false, direction: 1 }, { kind: "transit" }); } }] });
+  const affordable = p.cash >= 40;
+  const actions = [{ label: "Stay here", primary: !affordable, action: () => { log(`${p.name} stayed at the Transit Station.`); closeDecision(); endTurn(); } }];
+  if (affordable) actions.push({ label: "Ride for $40", primary: true, action: () => { adjustCash(p, -40); closeDecision(); return travelPlayer(p, [target], { collectStart: false, direction: 1 }, { kind: "transit" }); } });
+  showDecision({ icon: "i-train", kicker: "Transit Station", title: "Catch the city line?", copy: affordable ? `Pay $40 to travel directly to the other Transit Station. Your turn ends when you arrive.` : `The fare is $40 and ${p.name} holds ${money(p.cash)}. You will have to stay put.`, details: `<div class="space-summary"><i class="swatch" style="background:var(--violet)"></i><div><strong>${spaces[target].name}</strong><span>A fast route across the city.</span></div><strong class="money">$40</strong></div>`, actions });
 }
 
 function sendToJail(p, source) { return travelPlayer(p, [cornerAt[1]], { collectStart: false, direction: 1 }, { kind: "jail", source }); }
 
 function showJailDecision() {
   const p = player(); state.phase = "decision"; setPending({ kind: "jail", player: p.id }); renderTurn();
-  const actions = [{ label: "Miss this turn", action: () => { p.jailed = false; log(`${p.name} missed a turn to leave Jail.`); closeDecision(); endTurn(); } }, { label: "Pay $50 and choose steps", primary: true, action: () => { adjustCash(p, -50); p.jailed = false; log(`${p.name} paid $50 to leave Jail.`); closeDecision(); state.phase = "choose"; renderAll(); toast("You’re out — choose your steps."); } }];
+  const actions = [{ label: "Miss this turn", action: () => { p.jailed = false; log(`${p.name} missed a turn to leave Jail.`); closeDecision(); endTurn(); } }];
+  if (p.cash >= 50) actions.push({ label: "Pay $50 and choose steps", primary: true, action: () => { adjustCash(p, -50); p.jailed = false; log(`${p.name} paid $50 to leave Jail.`); closeDecision(); state.phase = "choose"; renderAll(); toast("You’re out — choose your steps."); } });
   if (p.jailPasses > 0) actions.splice(1, 0, { label: "Use Jail pass and choose steps", action: () => { p.jailPasses--; p.jailed = false; log(`${p.name} used a Get Out of Jail pass.`); closeDecision(); state.phase = "choose"; renderAll(); toast("Pass used — choose your steps."); } });
-  showDecision({ icon: "i-lock", kicker: "You’re in Jail", title: "Choose how to leave", copy: "Pay the release fee, use a Get Out of Jail pass, or take a breather and miss this turn.", actions });
+  showDecision({ icon: "i-lock", kicker: "You’re in Jail", title: "Choose how to leave", copy: p.cash >= 50 ? "Pay the release fee, use a Get Out of Jail pass, or take a breather and miss this turn." : `The $50 fee is beyond ${p.name}’s ${money(p.cash)}. Use a pass if you hold one, or miss this turn.`, actions });
 }
 
 function showDecision({ icon: iconName, kicker, title, copy, details = "", actions = [] }) {
@@ -911,8 +928,29 @@ function resumePending() {
 function closeDecision() { if ($("decision-dialog").open) $("decision-dialog").close(); }
 function adjustCash(p, amount) { p.cash += amount; renderPlayers(); queueSave(); }
 
+// Cash never goes below zero. Optional spending is refused outright; a forced payment a
+// group cannot cover takes everything they have left and puts them out of the game.
+function chargeCash(p, amount, creditor = null) {
+  const paid = Math.min(p.cash, amount);
+  p.cash -= paid;
+  if (creditor) creditor.cash += paid;
+  if (paid < amount) bankrupt(p, creditor, amount - paid);
+  renderPlayers(); queueSave();
+  return paid >= amount;
+}
+
+function bankrupt(p, creditor, shortfall) {
+  p.out = true;
+  // Their landmarks go back on the market; upgrades are torn down with them.
+  properties.forEach(prop => { if (prop.owner === p.id) { prop.owner = null; prop.building = false; } });
+  log(`${p.name} could not cover ${money(shortfall)}${creditor ? ` owed to ${creditor.name}` : ""} and is out of the game. Their landmarks return to the bank.`);
+  toast(`${p.name} is bankrupt — out of the game.`);
+  renderBoard();
+}
+
 function developProperty(prop) {
   const p = player(); const cost = buildingCost(prop); if (prop.owner !== p.id || prop.building) return;
+  if (p.cash < cost) { toast(`${p.name} needs ${money(cost)} to upgrade ${prop.name}.`); return; }
   adjustCash(p, -cost); prop.building = true; log(`${p.name} added a City Upgrade to ${prop.name} for ${money(cost)}. Rent is now ${money(prop.rent * 2)}.`); toast(`${prop.name} upgraded — rent doubled.`); renderAll();
 }
 
@@ -928,14 +966,18 @@ function endTurn() {
 
 function completeTurn(session) {
   if (state !== session || state.pending?.kind !== "turn-end") return;
-  const lastPlayer = state.currentPlayer === state.players.length - 1;
-    if (lastPlayer && state.finishAfterRound) { state.pending = null; endGame(); return; }
-    state.currentPlayer = lastPlayer ? 0 : state.currentPlayer + 1; if (lastPlayer) state.round++;
-    state.pending = null;
-    state.phase = "choose"; renderAll(); log(`${player().name}’s turn begins. Select the ${player().animal.name} to choose a move.`); queueSave();
+  // Last group standing wins there and then.
+  if (activePlayers().length <= 1) { state.pending = null; endGame(); return; }
+  // Hand over to the next group still in the game, noting when that wraps the round.
+  let next = state.currentPlayer, wrapped = false;
+  do { next += 1; if (next >= state.players.length) { next = 0; wrapped = true; } } while (state.players[next].out);
+  if (wrapped && state.finishAfterRound) { state.pending = null; endGame(); return; }
+  state.currentPlayer = next; if (wrapped) state.round++;
+  state.pending = null;
+  state.phase = "choose"; renderAll(); log(`${player().name}’s turn begins. Select the ${player().animal.name} to choose a move.`); queueSave();
 }
 
-function openTrade() { if (!state || state.phase === "complete") return; $("trade-form").dataset.fromPlayer = String(player().id); $("trade-from-name").textContent = player().name; const partner = $("trade-partner"); partner.innerHTML = state.players.filter(p => p.id !== player().id).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join(""); populateTradeProperties(); $("trade-from-cash").value = 0; $("trade-to-cash").value = 0; $("trade-dialog").showModal(); }
+function openTrade() { if (!state || state.phase === "complete") return; $("trade-form").dataset.fromPlayer = String(player().id); $("trade-from-name").textContent = player().name; const partner = $("trade-partner"); partner.innerHTML = state.players.filter(p => p.id !== player().id && !p.out).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join(""); populateTradeProperties(); $("trade-from-cash").value = 0; $("trade-to-cash").value = 0; $("trade-dialog").showModal(); }
 function populateTradeProperties() {
   const partnerId = Number($("trade-partner").value); const options = (owner) => `<option value="">No property</option>${properties.filter(p => p.owner === owner).map(p => `<option value="${p.position}">${escapeHtml(p.name)} (${money(p.price)})</option>`).join("")}`;
   $("trade-from-property").innerHTML = options(Number($("trade-form").dataset.fromPlayer)); $("trade-to-property").innerHTML = options(partnerId);
@@ -944,14 +986,23 @@ function submitTrade(event) {
   event.preventDefault(); if (!state || state.phase === "complete") return; const from = state.players[Number($("trade-form").dataset.fromPlayer)]; const to = state.players[Number($("trade-partner").value)]; if (!from || !to || from === to) return; const fromProp = propertyAt[$("trade-from-property").value]; const toProp = propertyAt[$("trade-to-property").value]; const fromCash = Math.max(0, Number($("trade-from-cash").value) || 0); const toCash = Math.max(0, Number($("trade-to-cash").value) || 0);
   if (!fromProp && !toProp && !fromCash && !toCash) { toast("Choose a property or cash amount for the trade."); return; }
   if (fromProp && fromProp.owner !== from.id) { toast("That property is no longer available."); return; } if (toProp && toProp.owner !== to.id) { toast("That property is no longer available."); return; }
+  if (from.out || to.out) { toast("That group is out of the game."); return; }
+  // Neither side may trade itself into debt.
+  if (fromCash > from.cash) { toast(`${from.name} only holds ${money(from.cash)}.`); return; }
+  if (toCash > to.cash) { toast(`${to.name} only holds ${money(to.cash)}.`); return; }
   if (fromProp) fromProp.owner = to.id; if (toProp) toProp.owner = from.id; adjustCash(from, -fromCash + toCash); adjustCash(to, fromCash - toCash); const parts = []; if (fromProp) parts.push(`${from.name} gave ${fromProp.name}`); if (toProp) parts.push(`${to.name} gave ${toProp.name}`); if (fromCash || toCash) parts.push("cash changed hands"); log(`Trade complete: ${parts.join("; ")}.`); toast("Agreed trade recorded."); $("trade-dialog").close(); renderAll();
 }
 
 function endGame() {
   state.phase = "complete"; state.pending = null;
-  const scores = state.players.map(p => ({ ...p, wealth: totalWealth(p), propertyValue: properties.filter(x => x.owner === p.id).reduce((sum, x) => sum + propertyWorth(x), 0) })).sort((a, b) => b.wealth - a.wealth);
-  const winner = scores[0]; $("winner-message").textContent = `${winner.name} takes the city with ${money(winner.wealth)} in total wealth.`;
-  $("scoreboard").innerHTML = scores.map((p, i) => `<div class="score-row"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>Cash ${money(p.cash)} · City value ${money(p.propertyValue)}</small></div><strong class="score-wealth ${p.wealth < 0 ? "negative" : ""}">${money(p.wealth)}</strong></div>`).join("");
+  // Bankrupt groups always place below anyone still standing, however small their pile.
+  const scores = state.players.map(p => ({ ...p, wealth: totalWealth(p), propertyValue: properties.filter(x => x.owner === p.id).reduce((sum, x) => sum + propertyWorth(x), 0) }))
+    .sort((a, b) => (Boolean(a.out) === Boolean(b.out) ? b.wealth - a.wealth : a.out ? 1 : -1));
+  const winner = scores[0];
+  $("winner-message").textContent = activePlayers().length === 1
+    ? `${winner.name} is the last group standing and takes the city with ${money(winner.wealth)} in total wealth.`
+    : `${winner.name} takes the city with ${money(winner.wealth)} in total wealth.`;
+  $("scoreboard").innerHTML = scores.map((p, i) => `<div class="score-row ${p.out ? "score-out" : ""}"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>${p.out ? "Bankrupt — out of the game" : `Cash ${money(p.cash)} · City value ${money(p.propertyValue)}`}</small></div><strong class="score-wealth">${p.out ? "Out" : money(p.wealth)}</strong></div>`).join("");
   saveGame(false, "complete");
   $("end-dialog").showModal();
 }

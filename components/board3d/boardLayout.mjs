@@ -46,7 +46,7 @@ export function routeForSteps(from, steps, count = 36) {
 }
 
 export function tokenOffset(players, player, position = player.position) {
-  const occupants = players.filter(p => p.position === position || p.id === player.id).sort((a, b) => a.id - b.id);
+  const occupants = players.filter(p => (p.position === position && !p.out) || p.id === player.id).sort((a, b) => a.id - b.id);
   if (occupants.length <= 1) return { x: 0, z: 0 };
   const slot = occupants.findIndex(p => p.id === player.id);
   const angle = slot / occupants.length * Math.PI * 2 + Math.PI / 4;

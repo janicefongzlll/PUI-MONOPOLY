@@ -129,10 +129,54 @@ test('Jail exit by fee, pass or missing turn',()=>{
     assert.equal(e.run('state.phase'),mode==='miss'?'moving':'choose');
   }
 });
-test('upgrade value/rent and negative balances remain valid',()=>{
+test('upgrade value and rent are unchanged; an upgrade beyond cash is refused',()=>{
   const e=engine();e.run('properties[0].owner=0;developProperty(properties[0]);developProperty(properties[0]);');
   assert.equal(e.run('player().cash'),960);assert.equal(e.run('rentOf(properties[0])'),20);assert.equal(e.run('totalWealth(player())'),1080);
-  e.run('adjustCash(player(),-1500);');assert.equal(e.run('totalWealth(player())'),-420);
+  const poor=engine();poor.run('properties[1].owner=0;player().cash=10;developProperty(properties[1]);');
+  assert.equal(poor.run('player().cash'),10);assert.equal(poor.run('properties[1].building'),false);
+});
+test('a forced payment beyond cash empties the payer, pays the creditor and puts them out',()=>{
+  // Rent: the owner receives everything the payer had, no more.
+  const e=engine();
+  e.run('properties[0].owner=1;properties[0].building=true;properties[2].owner=0;properties[3].owner=0;properties[3].building=true;player().cash=8;payRent(player(),properties[0]);');
+  assert.equal(e.run('state.players[0].cash'),0); assert.equal(e.run('state.players[1].cash'),1008);
+  assert.equal(e.run('player().out'),true);
+  assert.equal(e.run('properties[2].owner'),null); assert.equal(e.run('properties[3].owner'),null);
+  assert.equal(e.run('properties[3].building'),false, 'upgrades are torn down with the owner');
+  assert.equal(e.run('properties[0].owner'),1, 'the creditor keeps their own landmark');
+  // Tax and a Chance penalty do the same, with no creditor to pay.
+  const tax=engine(); tax.run('player().cash=20; player().position=4; resolveSpace(player());');
+  assert.equal(tax.run('player().cash'),0); assert.equal(tax.run('player().out'),true);
+  const card=engine(); card.run('player().cash=20; applyChance(player(),chanceCards[1]);');
+  assert.equal(card.run('player().cash'),0); assert.equal(card.run('player().out'),true);
+});
+test('no purchase, fare or fee may take a group below zero',()=>{
+  const buy=engine(); buy.run('player().cash=79; showPurchaseDecision(player(),properties[0]);');
+  assert.equal(buy.run('ui.actions.length'),1,'only the pass action is offered');
+  buy.run('ui.actions[0].action();');
+  assert.equal(buy.run('player().cash'),79); assert.equal(buy.run('properties[0].owner'),null);
+  const ride=engine(); ride.run('player().cash=39; showStationDecision(player(),6);');
+  assert.equal(ride.run('ui.actions.length'),1); assert.equal(ride.run('ui.actions[0].label'),'Stay here');
+  const jail=engine(); jail.run('player().cash=49; player().jailed=true; player().jailPasses=0; showJailDecision();');
+  assert.deepEqual(jail.plain('ui.actions.map(a=>a.label)'),['Miss this turn']);
+  const trade=engine();
+  trade.run('properties[0].owner=0;openTrade();');
+  trade.element('trade-partner').value='1'; trade.element('trade-from-property').value='1'; trade.element('trade-to-property').value='';
+  trade.element('trade-from-cash').value='4000'; trade.element('trade-to-cash').value='0';
+  trade.run('submitTrade({preventDefault(){}});');
+  assert.deepEqual(trade.plain('state.players.map(p=>p.cash)'),[1000,1000,1000,1000],'an unaffordable trade is refused');
+  assert.equal(trade.run('properties[0].owner'),0);
+});
+test('turns skip bankrupt groups and the last one standing ends the game',()=>{
+  const e=engine();
+  e.run('state.players[1].out=true; state.players[2].out=true; endTurn(); completeTurn(state);');
+  assert.equal(e.run('state.currentPlayer'),3,'groups 1 and 2 are skipped');
+  assert.equal(e.run('state.round'),1);
+  e.run('endTurn(); completeTurn(state);');
+  assert.equal(e.run('state.currentPlayer'),0); assert.equal(e.run('state.round'),2,'wrapping past the end still counts a round');
+  const solo=engine();
+  solo.run('state.players[1].out=true; state.players[2].out=true; state.players[3].out=true; endTurn(); completeTurn(state);');
+  assert.equal(solo.run('state.phase'),'complete');
 });
 test('trading retains captured offering group across turn change and conserves cash',()=>{
   const e=engine();e.run('properties[0].owner=0;properties[0].building=true;properties[1].owner=1;openTrade();');

@@ -13,13 +13,16 @@ This is a vanilla JavaScript webpage with a locally bundled Three.js renderer. S
 - Property buying, rent, one City Upgrade per property, and player-to-player trading
 - Four Chance spaces with cash, movement, Jail, and Get Out of Jail effects
 - Two Transit Stations, Income Tax, City Maintenance Tax, Free Parking, Jail, and Go to Jail
+- Bankruptcy elimination: a group that cannot pay is out, and the last group standing wins
 - Call Time at the two-hour limit, equal-turn round finish, and a final wealth scoreboard
 
 ## Original house rules
 
 - A City Upgrade costs half a property’s purchase price, doubles its rent, and adds its cost to final wealth.
 - Groups may trade any properties and cash when all groups involved agree.
-- Cash can become negative, representing debt; it counts against final wealth. This keeps the city moving without player elimination.
+- Cash can never go below zero. Buying, upgrading, a Transit fare, the Jail fee and cash in a trade are simply refused when a group cannot cover them.
+- A forced payment a group cannot cover — rent, tax or a Chance penalty — takes every dollar they have left, hands it to whoever they owed, and puts them out of the game. Their landmarks return to the bank unowned and unupgraded, ready for anyone to buy.
+- The game ends the moment one group is left standing, and bankrupt groups always place below anyone still in.
 
 The app is intentionally local-first: no account, database, or Supabase table is needed to play around one device.
 

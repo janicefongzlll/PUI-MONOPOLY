@@ -65,7 +65,11 @@ export class PlayerToken3D {
     hit.userData.playerId = player.id;
     this.group.traverse(object => object.layers.enable(TOKEN_LAYER));
   }
-  sync(player, active) { this.halo.visible = active; this.jailRing.visible = player.jailed; }
+  sync(player, active) {
+    // A bankrupt group's piece leaves the board.
+    this.group.visible = !player.out;
+    this.halo.visible = active && !player.out; this.jailRing.visible = player.jailed;
+  }
   faceCamera(camera) {
     this.group.rotation.y = Math.atan2(camera.position.x - this.group.position.x, camera.position.z - this.group.position.z);
     if (this.artwork) {
