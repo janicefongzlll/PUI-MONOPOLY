@@ -76,10 +76,12 @@ const posToGrid = (position) => {
   return [1 + (position - topRight), BOARD_COLS];
 };
 
-const playerColors = ["#ef4a54", "#1769aa", "#8e5ee4", "#e27719", "#138c73", "#be3372"];
+const playerColors = ["#ef4a54", "#1769aa", "#8e5ee4", "#e27719"];
 const playerAnimals = [
-  { icon: "🐍", name: "Snake", art: "snake", pip: "grass" }, { icon: "🐒", name: "Monkey", art: "monkey", pip: "banana" }, { icon: "🐭", name: "Mouse", art: "mouse", pip: "cheese" },
-  { icon: "🐠", name: "Goldfish", art: "goldfish", pip: "tank" }, { icon: "🐴", name: "Horse", art: "horse", pip: "hat" }
+  { icon: "🐸", name: "Frog", art: "frog", pip: "grass" },
+  { icon: "🐒", name: "Monkey", art: "monkey", pip: "banana" },
+  { icon: "🐺", name: "Wolf", art: "wolf", pip: "cheese" },
+  { icon: "🐴", name: "Horse", art: "horse", pip: "hat" }
 ];
 
 const avatarArt = (animal, extra = "") => `<i class="avatar-art avatar-${animal.art || "snake"} ${extra}" aria-hidden="true"></i>`;
@@ -99,6 +101,49 @@ const chanceCards = [
 
 let state = null;
 let toastTimer = null;
+// Rendering only. State and all rule functions below remain the game authority.
+let board3D = null;
+let board3DReady = null;
+let board3DFailed = false;
+let movementController = null;
+let movementPromise = null;
+let turnTimer = null;
+
+function cancelBoardAnimation() {
+  movementController?.abort(); movementController = null; movementPromise = null;
+  clearTimeout(turnTimer); turnTimer = null;
+  board3D?.cancel();
+}
+
+function useBoardFallback(error) {
+  console.warn("City Fortune 3D unavailable; using the existing board.", error);
+  board3DFailed = true;
+  board3D?.dispose(); board3D = null;
+  $("board-3d-stage").hidden = true;
+  $("board-3d-stage").parentElement.classList.remove("is-3d");
+  $("board-fallback-message").textContent = "3D is unavailable on this device. You can continue playing on the classic board.";
+}
+
+function ensureBoard3D() {
+  if (board3DFailed) return Promise.resolve(null);
+  if (!board3DReady) board3DReady = import("./components/board3d/CityBoard3D.mjs").then(({ CityBoard3D }) => {
+    board3D = new CityBoard3D({ host: $("board-3d-stage"), spaces, corners: cornerAt,
+      onToken: id => { if (!state) return; if (id !== player().id) { toast(`It is ${player().name}'s turn.`); return; } openStepChooser(); },
+      onTile: showBoardSpace, onError: useBoardFallback });
+    $("board-3d-stage").hidden = false;
+    $("board-3d-stage").parentElement.classList.add("is-3d");
+    if (state) board3D.sync(state);
+    board3D.resize(); return board3D;
+  }).catch(error => { useBoardFallback(error); return null; });
+  return board3DReady;
+}
+
+function showBoardSpace(position) {
+  if (!state) return;
+  $("board-3d-info-content").innerHTML = spaceTipHtml(position);
+  $("board-3d-info").hidden = false;
+  if (board3DFailed) showSpaceTip($("game-board").querySelector(`[data-pos="${position}"]`), position);
+}
 /* --- sync engine ------------------------------------------------------------ */
 const SYNC_LABEL = {
   saved: "All changes saved", saving: "Saving…", pending: "Waiting to sync…",
@@ -151,6 +196,10 @@ const totalWealth = (p) => p.cash + properties.filter(x => x.owner === p.id).red
 const icon = (name) => `<svg aria-hidden="true"><use href="#${name}"></use></svg>`;
 
 function init() {
+  $("board-view-button").addEventListener("click", () => board3D?.toggleOverview());
+  $("board-3d-info-close").addEventListener("click", () => { $("board-3d-info").hidden = true; });
+  $("board-space-buttons").innerHTML = spaces.map((space, pos) => `<button type="button" data-board-position="${pos}">${String(pos).padStart(2, "0")} · ${escapeHtml(space.name)}</button>`).join("");
+  $("board-space-buttons").addEventListener("click", event => { const button = event.target.closest("[data-board-position]"); if (button) showBoardSpace(Number(button.dataset.boardPosition)); });
   renderNameFields(2);
   document.querySelectorAll('input[name="count"]').forEach(input => input.addEventListener("change", () => renderNameFields(Number(input.value))));
   $("setup-form").addEventListener("submit", startGame);
@@ -214,6 +263,7 @@ function renderNameFields(count) {
 
 async function startGame(event) {
   event.preventDefault();
+  cancelBoardAnimation();
   enterGameFullscreen();
   const names = [...document.querySelectorAll(".name-input")].map((input, i) => input.value.trim() || `Group ${i + 1}`);
   const chosen = [...document.querySelectorAll(".avatar-picker")].map(g => playerAnimals[Number(g.querySelector("input:checked").value)]);
@@ -228,6 +278,7 @@ async function startGame(event) {
 }
 
 function resetGame() {
+  cancelBoardAnimation();
   resetSync();
   exitGameFullscreen();
   state = null;
@@ -237,6 +288,7 @@ function resetGame() {
 }
 
 function showSetup() {
+  cancelBoardAnimation();
   resetSync();
   exitGameFullscreen();
   state = null;
@@ -310,6 +362,7 @@ async function ensureProfile() {
 
 async function signOut() {
   if (!supabaseClient) return;
+  cancelBoardAnimation();
   await supabaseClient.auth.signOut();
   authUser = null;
   state = null;
@@ -330,6 +383,7 @@ async function showLobby() {
 async function returnToLobby() {
   if (!supabaseClient || !authUser) { showSetup(); return; }
   if (state?.gameId && !(await saveGame(false)) && !window.confirm("This game has changes that have not synced yet. Leave anyway?")) return;
+  cancelBoardAnimation();
   resetSync();
   exitGameFullscreen();
   state = null;
@@ -358,21 +412,25 @@ async function deleteCloudGame(gameId, gameName) {
 function snapshotGame() {
   return {
     board: 2,
-    state: { ...state },
+    state: JSON.parse(JSON.stringify(state)),
     properties: properties.map(property => ({ position: property.position, name: property.name, owner: property.owner, building: property.building }))
   };
 }
 
 async function createCloudGame() {
+  const session = state;
   setSync("saving");
   const { data, error } = await supabaseClient.from("monopoly_games").insert({
     owner_id: authUser.id, name: state.gameName, player_count: state.players.length, game_state: snapshotGame()
   }).select("id").single();
+  if (state !== session) return;
   if (error) { setSync("error", "Cloud save unavailable"); toast(`Couldn’t create save: ${error.message}`); return; }
   state.gameId = data.id;
   lastSyncedAt = new Date();
   saveDirty = false;
   setSync("saved");
+  // The group may already have moved while the initial save was being created.
+  queueSave();
 }
 
 async function saveGame(showToast = false, status) {
@@ -383,9 +441,11 @@ async function saveGame(showToast = false, status) {
   if (!navigator.onLine) { saveDirty = true; setSync("offline"); if (showToast) toast("You are offline. Changes are held until the connection returns."); return false; }
 
   saveInFlight = true;
+  const session = state;
   saveDirty = false;
   setSync("saving");
   const { error } = await supabaseClient.from("monopoly_games").update({ name: state.gameName, player_count: state.players.length, status: saveStatus, game_state: snapshotGame() }).eq("id", state.gameId);
+  if (state !== session) return false;
   saveInFlight = false;
 
   if (error) {
@@ -420,18 +480,26 @@ async function loadCloudGame(gameId) {
   if (error) { toast(`Couldn’t open game: ${error.message}`); return; }
   const snapshot = game.game_state;
   if (!snapshot?.state || !Array.isArray(snapshot.properties)) { toast("This saved game is not valid."); return; }
+  cancelBoardAnimation();
+  resetSync();
   const legacy = snapshot.board !== 2;
+  properties.forEach(property => { property.owner = null; property.building = false; });
   snapshot.properties.forEach(saved => {
     const property = properties.find(p => p.name === saved.name) || propertyAt[legacy ? legacyPositionMap[saved.position] : saved.position];
     if (property) { property.owner = saved.owner; property.building = saved.building; }
   });
   state = { ...snapshot.state, gameId: game.id, gameName: game.name };
-  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id], position: legacy ? (legacyPositionMap[savedPlayer.position] ?? 0) : savedPlayer.position }));
+  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id % playerAnimals.length], position: legacy ? (legacyPositionMap[savedPlayer.position] ?? 0) : savedPlayer.position }));
   $("lobby-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   lastSyncedAt = new Date(); saveDirty = false; setSync("saved");
   renderAll();
+  if (state.phase === "complete") { endGame(); return; }
+  if (state.pending?.kind === "movement") { resumeMovement(); toast(`${state.gameName} resumed — continuing your move.`); return; }
+  if (state.pending?.kind === "turn-end") { completeTurn(state); return; }
   if (state.phase === "decision") { resumePending(); toast(`${state.gameName} resumed — finish your open decision.`); return; }
+  // Older saves could capture the original engine's short moving timeout.
+  if (state.phase === "moving") { state.phase = "choose"; state.pending = null; renderAll(); }
   toast(`${state.gameName} resumed.`);
 }
 
@@ -489,6 +557,7 @@ function initSpaceTips() {
 }
 
 function renderBoard() {
+  if (board3D) board3D.sync(state); else if (!board3DFailed) ensureBoard3D();
   const board = $("game-board");
   hideSpaceTip();
   const cells = spaces.map((space, pos) => {
@@ -562,7 +631,9 @@ function renderTurn() {
     actions.innerHTML = `<button class="outline-button" type="button" id="decision-reminder">Show decision</button>`;
     $("decision-reminder").addEventListener("click", () => $("decision-dialog").showModal());
   } else {
-    prompt.innerHTML = `<strong>Wrapping up the turn.</strong><span>The city ledger is updating.</span>`;
+    prompt.innerHTML = state.pending?.kind === "movement"
+      ? `<strong>${escapeHtml(p.name)} is on the move.</strong><span>Arriving at ${escapeHtml(spaces[state.pending.route.at(-1) ?? p.position].name)}…</span>`
+      : `<strong>Wrapping up the turn.</strong><span>The city ledger is updating.</span>`;
     actions.innerHTML = "";
   }
 }
@@ -584,27 +655,98 @@ function escapeHtml(text) { return String(text).replace(/[&<>'"]/g, char => ({ "
 function callTime() { state.finishAfterRound = true; log("Time was called. Complete the round."); toast("Time called — finish the current round."); renderToolbar(); queueSave(); }
 
 function openStepChooser() {
-  if (state.phase !== "choose") return;
+  if (!state || state.phase !== "choose") return;
   const p = player();
   if (p.jailed) { showJailDecision(); return; }
   const actions = Array.from({ length: 6 }, (_, index) => ({ label: `${index + 1} ${index === 0 ? "step" : "steps"}`, primary: index === 2, action: () => chooseSteps(index + 1) }));
   showDecision({ icon: "i-flag", kicker: `${p.animal.name} movement`, title: `How far will ${p.name} travel?`, copy: "Choose one to six spaces. You control the route through the world landmarks.", details: `<div class="step-picker-note"><span class="step-avatar">${avatarArt(p.animal)}</span><strong>${escapeHtml(p.name)}</strong><small>is currently on ${escapeHtml(spaces[p.position].name)}</small></div>`, actions });
+  $("decision-dialog").classList.add("step-selection");
 }
 
 function chooseSteps(steps) {
-  if (state.phase !== "choose") return;
+  if (!state || state.phase !== "choose" || !Number.isInteger(steps) || steps < 1 || steps > 6) return;
   const p = player();
-  state.phase = "moving"; renderTurn();
   closeDecision();
   log(`${p.name} chose to move ${steps} ${steps === 1 ? "step" : "steps"}.`);
-  setTimeout(() => movePlayer(p, steps, { collectStart: true, source: "choice" }), 180);
+  return movePlayer(p, steps, { collectStart: true, source: "choice" });
 }
 
 function movePlayer(p, steps, options = {}) {
-  const oldPosition = p.position; const raw = oldPosition + steps; p.position = ((raw % spaces.length) + spaces.length) % spaces.length;
-  if (options.collectStart && (steps > 0 && raw >= spaces.length)) { adjustCash(p, 200); log(`${p.name} passed Start and collected $200.`); }
-  renderBoard(); renderPlayers();
-  setTimeout(() => resolveSpace(p, options), 220);
+  const route = Array.from({ length: Math.abs(steps) }, (_, i) => ((p.position + Math.sign(steps) * (i + 1)) % spaces.length + spaces.length) % spaces.length);
+  return travelPlayer(p, route, { ...options, direction: Math.sign(steps) || 1 }, { kind: "resolve" });
+}
+
+function forwardRoute(from, to) {
+  const steps = (to - from + spaces.length) % spaces.length;
+  return Array.from({ length: steps }, (_, i) => (from + i + 1) % spaces.length);
+}
+
+function travelPlayer(p, route, options, completion) {
+  if (!state || state.pending?.kind === "movement") return movementPromise;
+  // Persist intent and progress only. No meshes, camera state or parallel cash/ownership model.
+  state.pending = { kind: "movement", player: p.id, route, nextStep: 0, options, completion, startRewarded: false };
+  state.phase = "moving";
+  $("board-3d-info").hidden = true;
+  renderTurn(); queueSave();
+  return resumeMovement();
+}
+
+function resumeMovement() {
+  if (!state || state.pending?.kind !== "movement") return Promise.resolve();
+  if (movementPromise) return movementPromise;
+  const session = state, pending = state.pending;
+  const p = state.players.find(item => item.id === pending.player);
+  if (!p) return Promise.resolve();
+  const controller = new AbortController(); movementController = controller;
+  const valid = () => state === session && session.pending === pending && !controller.signal.aborted;
+  const stepLanded = (index, step) => {
+    if (!valid() || step !== pending.nextStep) return;
+    p.position = index; pending.nextStep = step + 1;
+    // Exactly once per logical move, never per animation frame or resumed hop.
+    if (index === 0 && pending.options.collectStart && pending.options.direction > 0 && !pending.startRewarded) {
+      pending.startRewarded = true;
+      adjustCash(p, 200); log(`${p.name} passed Start and collected $200.`);
+    }
+    renderBoard(); renderPlayers(); queueSave();
+  };
+  const run = async () => {
+    let view = await ensureBoard3D();
+    if (!valid()) return;
+    view?.sync(session);
+    let arrived = false;
+    if (view) {
+      try { arrived = await view.animateMovement(p, pending, stepLanded, controller.signal); }
+      catch (error) { useBoardFallback(error); view = null; }
+    }
+    if (!valid()) return;
+    // Same engine and step commits also power the classic-board fallback.
+    if (!arrived) {
+      for (let step = pending.nextStep; step < pending.route.length; step++) {
+        await new Promise(resolve => setTimeout(resolve, 170));
+        if (!valid()) return;
+        stepLanded(pending.route[step], step);
+      }
+      await new Promise(resolve => setTimeout(resolve, 180));
+    }
+    if (!valid()) return;
+    movementController = null; movementPromise = null;
+    finishMovement(p, pending);
+  };
+  const task = run().finally(() => { if (movementController === controller) { movementController = null; movementPromise = null; } });
+  movementPromise = task;
+  return task;
+}
+
+function finishMovement(p, pending) {
+  if (!state || state.pending !== pending) return;
+  state.pending = null;
+  const completion = pending.completion;
+  if (completion.kind === "resolve") { resolveSpace(p, pending.options); return; }
+  if (completion.kind === "chance-start") { adjustCash(p, 200); log(`${p.name} advanced to Start and collected $200.`); }
+  if (completion.kind === "transit-pass") log(`${p.name} used a free Transit pass to ${spaces[p.position].name}.`);
+  if (completion.kind === "transit") log(`${p.name} rode the city line for $40.`);
+  if (completion.kind === "jail") { p.jailed = true; log(`${p.name} was sent to Jail by ${completion.source}.`); toast(`${p.name} is in Jail.`); }
+  renderBoard(); renderPlayers(); endTurn();
 }
 
 function resolveSpace(p, options = {}) {
@@ -615,6 +757,7 @@ function resolveSpace(p, options = {}) {
   else if (space.type === "chance") drawChance(p);
   else if (space.type === "station") resolveStation(p, options);
   else if (space.type === "go-jail") sendToJail(p, "Go to Jail");
+  else if (space.type === "parking") { log(`${p.name} took a breather at Free Parking.`); endTurn(); }
   else { log(`${p.name} is just visiting Jail.`); endTurn(); }
 }
 
@@ -698,12 +841,12 @@ function showChanceCard(p, index) {
 
 function applyChance(p, card) {
   if (card.effect === "cash") { adjustCash(p, card.amount); log(`${p.name}: ${card.title} (${money(card.amount)}).`); toast(`${card.amount >= 0 ? "Collected" : "Paid"} ${money(Math.abs(card.amount))}`); endTurn(); }
-  if (card.effect === "start") { p.position = 0; adjustCash(p, 200); log(`${p.name} advanced to Start and collected $200.`); renderBoard(); endTurn(); }
-  if (card.effect === "move") { log(`${p.name} moves back 3 spaces from a Chance card.`); movePlayer(p, card.amount, { collectStart: false, source: "chance" }); }
-  if (card.effect === "nearestStation") { const station = stationPositions.reduce((nearest, candidate) => ((candidate - p.position + spaces.length) % spaces.length) < ((nearest - p.position + spaces.length) % spaces.length) ? candidate : nearest, stationPositions[0]); p.position = station; log(`${p.name} used a free Transit pass to ${spaces[station].name}.`); renderBoard(); endTurn(); }
+  if (card.effect === "start") return travelPlayer(p, forwardRoute(p.position, 0), { collectStart: false, direction: 1 }, { kind: "chance-start" });
+  if (card.effect === "move") { log(`${p.name} moves back 3 spaces from a Chance card.`); return movePlayer(p, card.amount, { collectStart: false, source: "chance" }); }
+  if (card.effect === "nearestStation") { const station = stationPositions.reduce((nearest, candidate) => ((candidate - p.position + spaces.length) % spaces.length) < ((nearest - p.position + spaces.length) % spaces.length) ? candidate : nearest, stationPositions[0]); return travelPlayer(p, forwardRoute(p.position, station), { collectStart: false, direction: 1 }, { kind: "transit-pass" }); }
   if (card.effect === "jailPass") { p.jailPasses++; log(`${p.name} received a Get Out of Jail pass.`); toast("Get Out of Jail pass added."); endTurn(); }
-  if (card.effect === "jail") sendToJail(p, "a Chance card");
-  if (card.effect === "goto") { p.position = spaces.findIndex(s => s.name === card.targetName); log(`${p.name} advances to ${card.targetName}.`); renderBoard(); resolveSpace(p, { source: "chance" }); }
+  if (card.effect === "jail") return sendToJail(p, "a Chance card");
+  if (card.effect === "goto") { const target = spaces.findIndex(s => s.name === card.targetName); log(`${p.name} advances to ${card.targetName}.`); return travelPlayer(p, forwardRoute(p.position, target), { collectStart: false, source: "chance", direction: 1 }, { kind: "resolve" }); }
   renderAll();
 }
 
@@ -714,10 +857,10 @@ function resolveStation(p, options) {
 
 function showStationDecision(p, target) {
   state.phase = "decision"; setPending({ kind: "station", player: p.id, target }); renderTurn();
-  showDecision({ icon: "i-train", kicker: "Transit Station", title: "Catch the city line?", copy: `Pay $40 to travel directly to the other Transit Station. Your turn ends when you arrive.`, details: `<div class="space-summary"><i class="swatch" style="background:var(--violet)"></i><div><strong>${spaces[target].name}</strong><span>A fast route across the city.</span></div><strong class="money">$40</strong></div>`, actions: [{ label: "Stay here", action: () => { log(`${p.name} stayed at the Transit Station.`); closeDecision(); endTurn(); } }, { label: "Ride for $40", primary: true, action: () => { adjustCash(p, -40); p.position = target; log(`${p.name} rode the city line for $40.`); closeDecision(); renderBoard(); endTurn(); } }] });
+  showDecision({ icon: "i-train", kicker: "Transit Station", title: "Catch the city line?", copy: `Pay $40 to travel directly to the other Transit Station. Your turn ends when you arrive.`, details: `<div class="space-summary"><i class="swatch" style="background:var(--violet)"></i><div><strong>${spaces[target].name}</strong><span>A fast route across the city.</span></div><strong class="money">$40</strong></div>`, actions: [{ label: "Stay here", action: () => { log(`${p.name} stayed at the Transit Station.`); closeDecision(); endTurn(); } }, { label: "Ride for $40", primary: true, action: () => { adjustCash(p, -40); closeDecision(); return travelPlayer(p, [target], { collectStart: false, direction: 1 }, { kind: "transit" }); } }] });
 }
 
-function sendToJail(p, source) { p.position = cornerAt[1]; p.jailed = true; log(`${p.name} was sent to Jail by ${source}.`); toast(`${p.name} is in Jail.`); renderBoard(); renderPlayers(); endTurn(); }
+function sendToJail(p, source) { return travelPlayer(p, [cornerAt[1]], { collectStart: false, direction: 1 }, { kind: "jail", source }); }
 
 function showJailDecision() {
   const p = player(); state.phase = "decision"; setPending({ kind: "jail", player: p.id }); renderTurn();
@@ -727,9 +870,16 @@ function showJailDecision() {
 }
 
 function showDecision({ icon: iconName, kicker, title, copy, details = "", actions = [] }) {
+  $("decision-dialog").classList.remove("step-selection");
   $("dialog-icon").innerHTML = icon(iconName); $("dialog-kicker").textContent = kicker; $("dialog-title").textContent = title; $("dialog-copy").textContent = copy; $("dialog-details").innerHTML = details;
   $("dialog-actions").innerHTML = actions.map((action, index) => `<button class="${action.primary ? "primary-button" : "outline-button"}${action.variant ? ` ${action.variant}` : ""}" type="button" data-action="${index}">${escapeHtml(action.label)}</button>`).join("");
-  $("dialog-actions").querySelectorAll("button").forEach((button, index) => button.addEventListener("click", actions[index].action));
+  const session = state; let handled = false;
+  $("dialog-actions").querySelectorAll("button").forEach((button, index) => button.addEventListener("click", () => {
+    if (handled || state !== session) return;
+    handled = true;
+    $("dialog-actions").querySelectorAll("button").forEach(item => { item.disabled = true; });
+    actions[index].action();
+  }));
   $("decision-dialog").showModal();
 }
 // A decision that is open but unanswered is persisted, so resuming a game reopens it
@@ -759,29 +909,38 @@ function developProperty(prop) {
 }
 
 function endTurn() {
-  state.pending = null;
+  if (!state || state.pending?.kind === "turn-end" || state.phase === "complete") return;
+  state.pending = { kind: "turn-end" };
   const p = player(); p.turns++; state.phase = "moving"; renderAll();
-  const lastPlayer = state.currentPlayer === state.players.length - 1;
-  setTimeout(() => {
-    if (lastPlayer && state.finishAfterRound) { endGame(); return; }
-    state.currentPlayer = lastPlayer ? 0 : state.currentPlayer + 1; if (lastPlayer) state.round++;
-    state.phase = "choose"; renderAll(); log(`${player().name}’s turn begins. Select the ${player().animal.name} to choose a move.`); queueSave();
-  }, 280);
+  const session = state;
+  queueSave();
+  clearTimeout(turnTimer);
+  turnTimer = setTimeout(() => completeTurn(session), 280);
 }
 
-function openTrade() { if (!state) return; $("trade-from-name").textContent = player().name; const partner = $("trade-partner"); partner.innerHTML = state.players.filter(p => p.id !== player().id).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join(""); populateTradeProperties(); $("trade-from-cash").value = 0; $("trade-to-cash").value = 0; $("trade-dialog").showModal(); }
+function completeTurn(session) {
+  if (state !== session || state.pending?.kind !== "turn-end") return;
+  const lastPlayer = state.currentPlayer === state.players.length - 1;
+    if (lastPlayer && state.finishAfterRound) { state.pending = null; endGame(); return; }
+    state.currentPlayer = lastPlayer ? 0 : state.currentPlayer + 1; if (lastPlayer) state.round++;
+    state.pending = null;
+    state.phase = "choose"; renderAll(); log(`${player().name}’s turn begins. Select the ${player().animal.name} to choose a move.`); queueSave();
+}
+
+function openTrade() { if (!state || state.phase === "complete") return; $("trade-form").dataset.fromPlayer = String(player().id); $("trade-from-name").textContent = player().name; const partner = $("trade-partner"); partner.innerHTML = state.players.filter(p => p.id !== player().id).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join(""); populateTradeProperties(); $("trade-from-cash").value = 0; $("trade-to-cash").value = 0; $("trade-dialog").showModal(); }
 function populateTradeProperties() {
   const partnerId = Number($("trade-partner").value); const options = (owner) => `<option value="">No property</option>${properties.filter(p => p.owner === owner).map(p => `<option value="${p.position}">${escapeHtml(p.name)} (${money(p.price)})</option>`).join("")}`;
-  $("trade-from-property").innerHTML = options(player().id); $("trade-to-property").innerHTML = options(partnerId);
+  $("trade-from-property").innerHTML = options(Number($("trade-form").dataset.fromPlayer)); $("trade-to-property").innerHTML = options(partnerId);
 }
 function submitTrade(event) {
-  event.preventDefault(); const from = player(); const to = state.players[Number($("trade-partner").value)]; const fromProp = propertyAt[$("trade-from-property").value]; const toProp = propertyAt[$("trade-to-property").value]; const fromCash = Math.max(0, Number($("trade-from-cash").value) || 0); const toCash = Math.max(0, Number($("trade-to-cash").value) || 0);
+  event.preventDefault(); if (!state || state.phase === "complete") return; const from = state.players[Number($("trade-form").dataset.fromPlayer)]; const to = state.players[Number($("trade-partner").value)]; if (!from || !to || from === to) return; const fromProp = propertyAt[$("trade-from-property").value]; const toProp = propertyAt[$("trade-to-property").value]; const fromCash = Math.max(0, Number($("trade-from-cash").value) || 0); const toCash = Math.max(0, Number($("trade-to-cash").value) || 0);
   if (!fromProp && !toProp && !fromCash && !toCash) { toast("Choose a property or cash amount for the trade."); return; }
   if (fromProp && fromProp.owner !== from.id) { toast("That property is no longer available."); return; } if (toProp && toProp.owner !== to.id) { toast("That property is no longer available."); return; }
   if (fromProp) fromProp.owner = to.id; if (toProp) toProp.owner = from.id; adjustCash(from, -fromCash + toCash); adjustCash(to, fromCash - toCash); const parts = []; if (fromProp) parts.push(`${from.name} gave ${fromProp.name}`); if (toProp) parts.push(`${to.name} gave ${toProp.name}`); if (fromCash || toCash) parts.push("cash changed hands"); log(`Trade complete: ${parts.join("; ")}.`); toast("Agreed trade recorded."); $("trade-dialog").close(); renderAll();
 }
 
 function endGame() {
+  state.phase = "complete"; state.pending = null;
   const scores = state.players.map(p => ({ ...p, wealth: totalWealth(p), propertyValue: properties.filter(x => x.owner === p.id).reduce((sum, x) => sum + propertyWorth(x), 0) })).sort((a, b) => b.wealth - a.wealth);
   const winner = scores[0]; $("winner-message").textContent = `${winner.name} takes the city with ${money(winner.wealth)} in total wealth.`;
   $("scoreboard").innerHTML = scores.map((p, i) => `<div class="score-row"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>Cash ${money(p.cash)} · City value ${money(p.propertyValue)}</small></div><strong class="score-wealth ${p.wealth < 0 ? "negative" : ""}">${money(p.wealth)}</strong></div>`).join("");
