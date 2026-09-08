@@ -20,7 +20,7 @@ export class CityBoard3D {
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.05;
-    this.renderer.domElement.setAttribute('aria-label', 'Interactive 3D City Fortune board. Tap a piece to move or a tile to inspect it.');
+    this.renderer.domElement.setAttribute('aria-label', 'Interactive 3D PUI Fortune board. Tap a piece to move or a tile to inspect it.');
     this.renderer.domElement.setAttribute('role', 'img');
     this.host.appendChild(this.renderer.domElement);
     this.camera = new THREE.PerspectiveCamera(44, 1, 0.1, 220);

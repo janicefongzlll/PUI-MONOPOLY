@@ -22,7 +22,7 @@ export function createBoardEnvironment(scene, resources, batch) {
   plaza.position.set(0, 0.1, 1.8); plaza.receiveShadow = true; scene.add(plaza);
   const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 512;
   const ctx = canvas.getContext('2d'); ctx.fillStyle = '#e9e7ce'; ctx.textAlign = 'center';
-  ctx.font = '700 106px sans-serif'; ctx.fillText('CITY', 512, 183);
+  ctx.font = '700 106px sans-serif'; ctx.fillText('PUI', 512, 183);
   ctx.fillStyle = '#dbbb72'; ctx.font = '800 120px sans-serif'; ctx.fillText('FORTUNE', 512, 318);
   ctx.fillStyle = '#afcabe'; ctx.font = '500 26px sans-serif'; ctx.fillText('BUY  ·  TRADE  ·  BUILD', 512, 410);
   const titleMaterial = new THREE.MeshBasicMaterial({ map: resources.texture(canvas), transparent: true, depthWrite: false, toneMapped: false });
