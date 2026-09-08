@@ -110,6 +110,7 @@ let board3DFailed = false;
 let movementController = null;
 let movementPromise = null;
 let turnTimer = null;
+let decisionTimer = null;
 
 function cancelBoardAnimation() {
   movementController?.abort(); movementController = null; movementPromise = null;
@@ -838,6 +839,9 @@ function resolveProperty(p, prop) {
   showRentDecision(p, prop);
 }
 
+// Rival-facing decisions expire so one group cannot stall the table.
+const DECISION_SECONDS = 30;
+
 const rentOf = (prop) => prop.rent * (prop.building ? 2 : 1);
 
 function showRentDecision(p, prop) {
@@ -853,7 +857,10 @@ function showRentDecision(p, prop) {
     actions: [
       { label: `Pay ${money(rent)} rent`, primary: true, action: () => { closeDecision(); payRent(p, prop, 1); } },
       { label: `Challenge ${owner.name}`, action: () => { closeDecision(); log(`${p.name} challenged ${owner.name} to a mini game over ${prop.name}.`); showChallengeDecision(p, prop); } }
-    ]
+    ],
+    timeLimit: DECISION_SECONDS,
+    timeoutNote: "the rent is paid automatically",
+    onTimeout: () => { log(`${p.name} ran out of time and paid the rent rather than challenging.`); toast("Time up — rent paid."); closeDecision(); payRent(p, prop, 1); }
   });
 }
 
@@ -904,7 +911,8 @@ function showPurchaseDecision(p, prop) {
   // No buying into debt: without the full price the only move is to walk away.
   if (affordable) actions.push({ label: `Buy for ${money(prop.price)}`, primary: true, action: () => { adjustCash(p, -prop.price); prop.owner = p.id; log(`${p.name} bought ${prop.name} for ${money(prop.price)}.`); toast(`${prop.name} is now yours.`); closeDecision(); endTurn(); } });
   actions.push({ label: affordable ? "Pass on this property" : "Leave it — not enough cash", primary: !affordable, action: () => { log(`${p.name} left ${prop.name} open for another group.`); closeDecision(); endTurn(); } });
-  showDecision({ icon: "i-build", kicker: "Open city block", title: `${prop.name} is available`, copy: affordable ? `Buy this address to add it to ${p.name}’s city portfolio. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.` : `${p.name} holds ${money(p.cash)} and cannot cover the ${money(prop.price)} price. The block stays open.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions });
+  const timeout = { timeLimit: DECISION_SECONDS, timeoutNote: "the block stays open", onTimeout: () => { log(`${p.name} ran out of time and left ${prop.name} open for another group.`); toast(`Time up — ${prop.name} not bought.`); closeDecision(); endTurn(); } };
+  showDecision({ ...timeout, icon: "i-build", kicker: "Open city block", title: `${prop.name} is available`, copy: affordable ? `Buy this address to add it to ${p.name}’s city portfolio. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.` : `${p.name} holds ${money(p.cash)} and cannot cover the ${money(prop.price)} price. The block stays open.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions });
 }
 
 function drawChance(p) {
@@ -956,17 +964,43 @@ function showJailDecision() {
   showDecision({ icon: "i-lock", kicker: "You’re in Jail", title: "Choose how to leave", copy: p.cash >= 50 ? "Pay the release fee, use a Get Out of Jail pass, or take a breather and miss this turn." : `The $50 fee is beyond ${p.name}’s ${money(p.cash)}. Use a pass if you hold one, or miss this turn.`, actions });
 }
 
-function showDecision({ icon: iconName, kicker, title, copy, details = "", actions = [] }) {
+function stopDecisionTimer() {
+  clearTimeout(decisionTimer); decisionTimer = null;
+  const label = $("decision-timer");
+  label.hidden = true; label.classList.remove("is-urgent");
+}
+
+function showDecision({ icon: iconName, kicker, title, copy, details = "", actions = [], timeLimit = 0, timeoutNote = "", onTimeout = null }) {
+  stopDecisionTimer();
   $("decision-dialog").classList.remove("step-selection");
   $("dialog-icon").innerHTML = icon(iconName); $("dialog-kicker").textContent = kicker; $("dialog-title").textContent = title; $("dialog-copy").textContent = copy; $("dialog-details").innerHTML = details;
   $("dialog-actions").innerHTML = actions.map((action, index) => `<button class="${action.primary ? "primary-button" : "outline-button"}${action.variant ? ` ${action.variant}` : ""}" type="button" data-action="${index}">${escapeHtml(action.label)}</button>`).join("");
   const session = state; let handled = false;
-  $("dialog-actions").querySelectorAll("button").forEach((button, index) => button.addEventListener("click", () => {
+  // One gate for both the buttons and the clock, so a decision can only resolve once.
+  const resolve = (run) => {
     if (handled || state !== session) return;
     handled = true;
+    stopDecisionTimer();
     $("dialog-actions").querySelectorAll("button").forEach(item => { item.disabled = true; });
-    actions[index].action();
-  }));
+    run();
+  };
+  $("dialog-actions").querySelectorAll("button").forEach((button, index) => button.addEventListener("click", () => resolve(actions[index].action)));
+  if (timeLimit > 0 && onTimeout) {
+    // The clock belongs to the decision, not the dialog: closing the dialog to look at the
+    // board does not stop it, but starting another game does.
+    const label = $("decision-timer");
+    let left = timeLimit;
+    const tick = () => {
+      if (state !== session) { stopDecisionTimer(); return; }
+      label.textContent = `${left}s to decide · ${timeoutNote}`;
+      label.classList.toggle("is-urgent", left <= 10);
+      if (left <= 0) { resolve(onTimeout); return; }
+      left -= 1;
+      decisionTimer = setTimeout(tick, 1000);
+    };
+    label.hidden = false;
+    tick();
+  }
   $("decision-dialog").showModal();
 }
 // A decision that is open but unanswered is persisted, so resuming a game reopens it

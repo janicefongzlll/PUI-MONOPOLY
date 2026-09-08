@@ -245,6 +245,27 @@ test('board 1 and board 2 saves remap positions to the current numbering', async
   assert.equal(t.run('state.players[0].position'),10);   // 10x10 Jail corner (no board tag)
 });
 
+test('the purchase and rent decisions expire after 30s to the safe default',()=>{
+  // Purchase expires to leaving the block open: no owner, no cash moved, turn still ends.
+  const buy=engine(); buy.run('showPurchaseDecision(player(),properties[0]);');
+  assert.equal(buy.run('ui.timeLimit'),30);
+  buy.run('ui.onTimeout();');
+  assert.equal(buy.run('properties[0].owner'),null);
+  assert.equal(buy.run('player().cash'),1000);
+  assert.equal(buy.run('player().turns'),1);
+  // Rent expires to paying, never to a challenge.
+  const rent=engine(); rent.run('properties[0].owner=1; showRentDecision(player(),properties[0]);');
+  assert.equal(rent.run('ui.timeLimit'),30);
+  rent.run('ui.onTimeout();');
+  assert.deepEqual(rent.plain('state.players.map(p=>p.cash)'),[990,1010,1000,1000]);
+  assert.equal(rent.run('player().turns'),1);
+  // Decisions played away from the screen, or with no rival waiting, keep no clock.
+  for (const start of ['properties[0].owner=1; showChallengeDecision(player(),properties[0])','showJailDecision()','showStationDecision(player(),6)','showChanceCard(player(),0)']) {
+    const e=engine(); e.run(`${start};`);
+    assert.equal(e.run('ui.timeLimit'),undefined,start);
+  }
+});
+
 (async()=>{
   let failed=0;
   for(const item of cases){try{await item.run();console.log('PASS',item.name);}catch(error){failed++;console.error('FAIL',item.name,error);}}

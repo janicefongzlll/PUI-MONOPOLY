@@ -376,3 +376,8 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 .library-tab.is-selected { background: var(--wd-brand-deep); border-color: var(--wd-brand-deep); color: #fff; }
 .results-dialog { width: min(520px, calc(100vw - 32px)); }
 .results-dialog .scoreboard { margin-top: 14px; }
+
+/* Countdown on the two decisions a rival is waiting on -------------------------- */
+.decision-timer { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; padding: 9px 13px; border: 2px solid var(--wd-yellow-border); border-radius: 12px; background: var(--wd-yellow-surface); color: #5a4410; font-size: 13px; font-weight: 800; }
+.decision-timer::before { content: "⏱"; font-size: 15px; }
+.decision-timer.is-urgent { border-color: #d98b7a; background: #ffeee9; color: #8a3320; }
