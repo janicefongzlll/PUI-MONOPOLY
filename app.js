@@ -158,6 +158,8 @@ let saveDirty = false;
 let saveInFlight = false;
 let lastSyncedAt = null;
 let saveStatus = "active";
+let libraryGames = [];
+let libraryTab = "active";
 
 function setSync(kind, detail) {
   const el = $("save-status");
@@ -224,8 +226,11 @@ function init() {
   $("sign-out-button").addEventListener("click", signOut);
   $("new-game-button").addEventListener("click", prepareNewGame);
   $("games-button").addEventListener("click", returnToLobby);
+  document.querySelectorAll(".close-results").forEach(button => button.addEventListener("click", () => $("results-dialog").close()));
+  $("tab-active").addEventListener("click", () => setLibraryTab("active"));
+  $("tab-complete").addEventListener("click", () => setLibraryTab("complete"));
   $("save-game-button").addEventListener("click", () => saveGame(true));
-  [$("decision-dialog"), $("rules-dialog"), $("trade-dialog"), $("log-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
+  [$("decision-dialog"), $("rules-dialog"), $("trade-dialog"), $("log-dialog"), $("results-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
   document.addEventListener("fullscreenchange", () => document.body.classList.toggle("is-fullscreen", Boolean(document.fullscreenElement)));
   window.addEventListener("offline", () => { if (canSync()) setSync("offline"); });
   window.addEventListener("online", () => { if (!canSync()) return; retryDelay = 0; if (saveDirty) saveGame(false); else setSync("saved"); });
@@ -285,7 +290,7 @@ function resetGame() {
   resetSync();
   exitGameFullscreen();
   state = null;
-  ["decision-dialog", "rules-dialog", "trade-dialog", "log-dialog", "end-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
+  ["decision-dialog", "rules-dialog", "trade-dialog", "log-dialog", "end-dialog", "results-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
   $("play-screen").classList.add("hidden");
   if (supabaseClient && authUser) showLobby(); else showSetup();
 }
@@ -393,15 +398,72 @@ async function returnToLobby() {
   showLobby();
 }
 
+function setLibraryTab(tab) { libraryTab = tab; paintLibrary(); }
+
+function paintLibrary() {
+  const library = $("game-library");
+  const done = (game) => game.status === "complete";
+  const counts = { active: libraryGames.filter(game => !done(game)).length, complete: libraryGames.filter(done).length };
+  [["active", "Active"], ["complete", "Completed"]].forEach(([tab, label]) => {
+    const button = $(tab === "active" ? "tab-active" : "tab-complete");
+    button.textContent = counts[tab] ? `${label} (${counts[tab]})` : label;
+    button.classList.toggle("is-selected", libraryTab === tab);
+    button.setAttribute("aria-selected", String(libraryTab === tab));
+  });
+  const games = libraryGames.filter(game => done(game) === (libraryTab === "complete"));
+  if (!games.length) {
+    library.innerHTML = libraryTab === "complete"
+      ? `<div class="empty-library"><span>🏁</span><h2>No finished games yet</h2><p>Call time, or play down to the last group standing, and the final table is kept here.</p></div>`
+      : `<div class="empty-library"><span>🌍</span><h2>No games in progress</h2><p>${counts.complete ? `Every saved game has finished — open the Completed tab to see ${counts.complete === 1 ? "its final table" : "their final tables"}.` : "Create your first world-landmark game to start building a saved collection."}</p></div>`;
+    return;
+  }
+  library.innerHTML = games.map(game => `<article class="saved-game"><div><p class="eyebrow">${done(game) ? "Complete" : "In progress"}</p><h2>${escapeHtml(game.name)}</h2><p>${game.player_count} groups · ${done(game) ? "finished" : "saved"} ${new Date(game.updated_at).toLocaleString()}</p></div><div class="saved-game-actions"><button class="outline-button" type="button" data-delete-id="${game.id}" data-game-name="${escapeHtml(game.name)}">Delete</button><button class="primary-button" type="button" ${done(game) ? `data-results-id="${game.id}"` : `data-game-id="${game.id}"`} data-game-name="${escapeHtml(game.name)}">${done(game) ? "View" : "Resume"}</button></div></article>`).join("");
+  library.querySelectorAll("[data-game-id]").forEach(button => button.addEventListener("click", () => { enterGameFullscreen(); loadCloudGame(button.dataset.gameId); }));
+  library.querySelectorAll("[data-results-id]").forEach(button => button.addEventListener("click", () => showGameResults(button.dataset.resultsId, button.dataset.gameName)));
+  library.querySelectorAll("[data-delete-id]").forEach(button => button.addEventListener("click", () => deleteCloudGame(button.dataset.deleteId, button.dataset.gameName)));
+}
+
 async function renderGameLibrary() {
   const library = $("game-library");
   library.innerHTML = `<p class="empty-property">Loading your saved games…</p>`;
   const { data: games, error } = await supabaseClient.from("monopoly_games").select("id, name, player_count, status, updated_at").order("updated_at", { ascending: false });
   if (error) { library.innerHTML = `<p class="empty-property">Couldn’t load your games: ${escapeHtml(error.message)}</p>`; return; }
-  if (!games.length) { library.innerHTML = `<div class="empty-library"><span>🌍</span><h2>No cities yet</h2><p>Create your first world-landmark game to start building a saved collection.</p></div>`; return; }
-  library.innerHTML = games.map(game => `<article class="saved-game"><div><p class="eyebrow">${game.status === "complete" ? "Complete" : "In progress"}</p><h2>${escapeHtml(game.name)}</h2><p>${game.player_count} groups · saved ${new Date(game.updated_at).toLocaleString()}</p></div><div class="saved-game-actions"><button class="outline-button" type="button" data-delete-id="${game.id}" data-game-name="${escapeHtml(game.name)}">Delete</button><button class="primary-button" type="button" data-game-id="${game.id}">Resume</button></div></article>`).join("");
-  library.querySelectorAll("[data-game-id]").forEach(button => button.addEventListener("click", () => { enterGameFullscreen(); loadCloudGame(button.dataset.gameId); }));
-  library.querySelectorAll("[data-delete-id]").forEach(button => button.addEventListener("click", () => deleteCloudGame(button.dataset.deleteId, button.dataset.gameName)));
+  libraryGames = games;
+  paintLibrary();
+}
+
+// Final standings rebuilt from a saved snapshot. Prices come from the live board by name,
+// so a game saved under an older board numbering still scores correctly.
+function finalStandings(snapshot) {
+  const saved = Array.isArray(snapshot?.properties) ? snapshot.properties : [];
+  const worthOf = (entry) => {
+    const prop = properties.find(item => item.name === entry.name);
+    return prop ? prop.price + (entry.building ? buildingCost(prop) : 0) : 0;
+  };
+  return (snapshot?.state?.players || []).map(entry => {
+    const out = Boolean(entry.out) || entry.cash < 0;
+    const cash = Math.max(0, entry.cash || 0);
+    const propertyValue = saved.filter(item => item.owner === entry.id).reduce((sum, item) => sum + worthOf(item), 0);
+    return { name: entry.name, color: entry.color, out, cash, propertyValue, wealth: cash + propertyValue };
+  }).sort((a, b) => (a.out === b.out ? b.wealth - a.wealth : a.out ? 1 : -1));
+}
+
+// Shared by the end-of-game screen and the saved results view so the two cannot drift.
+function standingsHtml(standings) {
+  return standings.map((p, i) => `<div class="score-row ${p.out ? "score-out" : ""}"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>${p.out ? "Bankrupt — out of the game" : `Cash ${money(p.cash)} · City value ${money(p.propertyValue)}`}</small></div><strong class="score-wealth">${p.out ? "Out" : money(p.wealth)}</strong></div>`).join("");
+}
+
+async function showGameResults(gameId, gameName) {
+  const body = $("results-body");
+  $("results-title").textContent = gameName || "Results";
+  $("results-dialog").showModal();
+  body.innerHTML = `<p class="empty-property">Loading the final table…</p>`;
+  const { data, error } = await supabaseClient.from("monopoly_games").select("game_state").eq("id", gameId).single();
+  if (error) { body.innerHTML = `<p class="empty-property">Couldn’t load that result: ${escapeHtml(error.message)}</p>`; return; }
+  const standings = finalStandings(data?.game_state);
+  if (!standings.length) { body.innerHTML = `<p class="empty-property">This game has no saved result.</p>`; return; }
+  const winner = standings.find(item => !item.out) || standings[0];
+  body.innerHTML = `<p class="dialog-copy">${escapeHtml(winner.name)} took the city with ${money(winner.wealth)} in total wealth.</p><div class="scoreboard">${standingsHtml(standings)}</div>`;
 }
 
 async function deleteCloudGame(gameId, gameName) {
@@ -1002,7 +1064,7 @@ function endGame() {
   $("winner-message").textContent = activePlayers().length === 1
     ? `${winner.name} is the last group standing and takes the city with ${money(winner.wealth)} in total wealth.`
     : `${winner.name} takes the city with ${money(winner.wealth)} in total wealth.`;
-  $("scoreboard").innerHTML = scores.map((p, i) => `<div class="score-row ${p.out ? "score-out" : ""}"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>${p.out ? "Bankrupt — out of the game" : `Cash ${money(p.cash)} · City value ${money(p.propertyValue)}`}</small></div><strong class="score-wealth">${p.out ? "Out" : money(p.wealth)}</strong></div>`).join("");
+  $("scoreboard").innerHTML = standingsHtml(scores);
   saveGame(false, "complete");
   $("end-dialog").showModal();
 }
