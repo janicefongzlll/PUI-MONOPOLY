@@ -1,0 +1,50 @@
+.board-3d-stage { position: relative; width: 100%; height: clamp(430px, 70dvh, 850px); min-width: 0; overflow: hidden; border: 1px solid #355850; border-radius: 22px; background: #142e33; box-shadow: 0 20px 45px #113c3329; }
+.board-3d-stage[hidden], .board-3d-tools[hidden], .board-3d-info[hidden] { display: none; }
+.board-3d-stage canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; }
+.board-3d-tools { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; justify-content: space-between; align-items: start; pointer-events: none; gap: 12px; z-index: 3; }
+.board-3d-tools button { pointer-events: auto; min-height: 44px; padding: 9px 14px; border: 1px solid #b4cbbe80; border-radius: 12px; background: #f8fbf3ed; color: #183e38; font-size: 14px; font-weight: 800; box-shadow: 0 4px 14px #04191833; }
+.board-3d-tools button:hover { background: #fff; }
+.board-3d-caption { min-width: 0; max-width: 64%; padding: 10px 13px; border-radius: 12px; background: #102f30e8; color: #f5f5e8; }
+.board-3d-caption strong { display: block; font: 800 18px/1.2 Nunito, sans-serif; }
+.board-3d-caption span { display: block; margin-top: 4px; color: #cee3d6; font-size: 12px; line-height: 1.4; }
+.board-3d-info { position: absolute; z-index: 4; left: 14px; bottom: 14px; width: min(320px, calc(100% - 28px)); padding: 16px; border: 1px solid #a1bbae; border-radius: 15px; background: #fffffff5; box-shadow: 0 8px 28px #062f3526; }
+.board-3d-info h4 { font-size: 20px; margin: 0 30px 10px 0; line-height: 1.2; }
+.board-3d-info .tip-note, .board-3d-info .tip-owner { font-size: 14px; }
+.board-3d-info .tip-stats strong { font-size: 18px; }
+.board-3d-info-close { position: absolute; right: 6px; top: 6px; width: 40px; height: 40px; border: 0; border-radius: 8px; background: transparent; font-size: 23px; color: #22453d; }
+.board-fallback-message { font-size: 14px; color: #52675c; }
+.board-fallback-message:empty { display: none; }
+.board-shell.is-3d { position: relative; top: auto; perspective: none; }
+.is-3d #game-board { display: none; }
+.is-fullscreen .board-3d-stage { height: calc(100dvh - 137px); min-height: 370px; }
+.play-screen:has(.is-3d) .game-layout { grid-template-columns: minmax(0, 1fr) 280px; align-items: start; }
+.play-screen:has(.is-3d) .turn-prompt { font-size: 15px; }
+.play-screen:has(.is-3d) .turn-prompt span { font-size: 13px; }
+.play-screen:has(.is-3d) .turn-actions button { min-height: 48px; font-size: 14px; }
+.play-screen:has(.is-3d) .player-name, .play-screen:has(.is-3d) .player-cash { font-size: 14px; }
+.play-screen:has(.is-3d) .player-portfolio { font-size: 12px; }
+.step-selection .dialog-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.step-selection .dialog-actions button { min-height: 56px; width: auto; font-size: 16px; }
+.board-keyboard-list { margin-top: 10px; }
+.board-keyboard-list summary { cursor: pointer; font-size: 14px; color: #345e4f; }
+.board-space-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding-top: 10px; }
+.board-space-buttons button { border: 1px solid #b4cabb; border-radius: 8px; background: #fff; min-height: 44px; padding: 6px; color: #22483e; font-size: 13px; }
+@media (max-width: 1000px) {
+  .play-screen:has(.is-3d) .game-layout { grid-template-columns: 1fr; gap: 14px; }
+  .play-screen:has(.is-3d) .game-sidebar { grid-template-columns: 1fr 1fr; }
+  .board-3d-stage, .is-fullscreen .board-3d-stage { height: min(66dvh, 680px); min-height: 400px; }
+}
+@media (max-width: 600px) {
+  .play-screen:has(.is-3d) { padding: 0 8px 24px; }
+  .board-3d-stage, .is-fullscreen .board-3d-stage { height: 52dvh; min-height: 340px; border-radius: 15px; }
+  .board-3d-tools { top: 9px; left: 9px; right: 9px; gap: 6px; }
+  .board-3d-caption { padding: 8px 10px; max-width: 62%; }
+  .board-3d-caption strong { font-size: 15px; }
+  .board-3d-caption span { font-size: 12px; }
+  .board-3d-tools button { padding: 8px 10px; font-size: 13px; }
+  .play-screen:has(.is-3d) .game-sidebar { grid-template-columns: 1fr; }
+  .play-screen:has(.is-3d) .turn-card { padding: 13px; }
+  .play-screen:has(.is-3d) .turn-prompt { margin: 8px 0; min-height: 0; }
+  .play-screen:has(.is-3d) .turn-spotlight { display: none; }
+  .board-space-buttons { grid-template-columns: 1fr 1fr; }
+}
