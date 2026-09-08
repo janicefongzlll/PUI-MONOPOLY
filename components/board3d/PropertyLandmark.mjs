@@ -1,12 +1,15 @@
 // Lightweight model factory. Replace this factory with GLTF assets later; indices stay unchanged.
 export function addPropertyLandmark(batch, tile, space) {
   const inward = tile.inward;
-  const origin = [tile.x + inward[0] * 0.55, tile.z + inward[1] * 0.55];
+  const origin = [tile.x + inward[0] * tile.landmarkAt, tile.z + inward[1] * tile.landmarkAt];
   const angle = tile.rotation;
+  // The models below were drawn for a 2.3-unit space. Scaling them with the tile keeps a
+  // bigger board from leaving tiny buildings adrift on it; only the tile top stays fixed.
+  const scale = Math.min(tile.alongSize, tile.radialSize) / 2.3;
   const put = (kind, color, x, y, z, sx, sy, sz) => {
-    const wx = origin[0] + Math.cos(angle) * x + Math.sin(angle) * z;
-    const wz = origin[1] - Math.sin(angle) * x + Math.cos(angle) * z;
-    batch.add(kind, color, [wx, y + 0.43, wz], [sx, sy, sz], angle);
+    const wx = origin[0] + (Math.cos(angle) * x + Math.sin(angle) * z) * scale;
+    const wz = origin[1] + (-Math.sin(angle) * x + Math.cos(angle) * z) * scale;
+    batch.add(kind, color, [wx, y * scale + 0.43, wz], [sx * scale, sy * scale, sz * scale], angle);
   };
   const stone = '#d9e2dc', glass = '#438b9a', roof = '#255b58', gold = '#d4b266';
   const tree = (x, z) => { put('cylinder', '#826444', x, 0.22, z, 0.055, 0.44, 0.055); put('sphere', '#4f8f6b', x, 0.53, z, 0.25, 0.35, 0.25); };

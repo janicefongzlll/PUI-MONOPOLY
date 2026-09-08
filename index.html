@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="City Fortune — a city-building property trading tabletop game." />
-    <title>City Fortune — Play the City</title>
+    <meta name="description" content="PUI Fortune — a city-building property trading tabletop game." />
+    <title>PUI Fortune — Play the City</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Mono:wght@400;500&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -33,9 +33,9 @@
     </svg>
 
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="City Fortune home">
+      <a class="brand" href="#top" aria-label="PUI Fortune home">
         <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
-        <span>CITY<br /><strong>FORTUNE</strong></span>
+        <span>PUI<br /><strong>FORTUNE</strong></span>
       </a>
       <div class="topbar-actions">
         <button class="text-button" id="games-button" type="button" hidden>My games</button>
@@ -47,7 +47,7 @@
     <main id="game-area">
       <section class="auth-screen hidden" id="auth-screen" aria-labelledby="auth-title">
         <div class="setup-copy">
-          <p class="eyebrow">City Fortune account</p>
+          <p class="eyebrow">PUI Fortune account</p>
           <h1 id="auth-title">Save the city.<br /><span>Return anytime.</span></h1>
           <p class="intro">Sign in to create multiple city games, save every turn, and continue exactly where your group stopped.</p>
         </div>
@@ -91,12 +91,12 @@
             </div>
           </fieldset>
           <div class="player-name-fields" id="player-name-fields"></div>
-          <button class="primary-button setup-submit" type="submit"><span>Start City Fortune</span><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+          <button class="primary-button setup-submit" type="submit"><span>Start PUI Fortune</span><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>
           <p class="setup-note">Every group starts with <strong>$1,000</strong>.</p>
         </form>
       </section>
 
-      <section class="play-screen hidden" id="play-screen" aria-label="City Fortune game table">
+      <section class="play-screen hidden" id="play-screen" aria-label="PUI Fortune game table">
           <div class="game-toolbar">
           <div class="turn-summary">
             <span class="status-dot" id="status-dot"></span>
@@ -109,10 +109,10 @@
         <p class="time-callout hidden" id="time-callout" role="status">Time was called. Finish this round so every group takes the same number of turns.</p>
 
         <div class="game-layout">
-          <section class="board-shell" aria-label="36 space City Fortune board">
+          <section class="board-shell" aria-label="36 space PUI Fortune board">
             <div class="board-3d-stage" id="board-3d-stage" hidden>
               <div class="board-3d-tools" id="board-3d-tools">
-                <div class="board-3d-caption"><strong id="board-location-name">City Fortune</strong><span id="board-location-meta">Tap a piece to move · Tap a tile to inspect</span></div>
+                <div class="board-3d-caption"><strong id="board-location-name">PUI Fortune</strong><span id="board-location-meta">Tap a piece to move · Tap a tile to inspect</span></div>
                 <button id="board-view-button" type="button" aria-pressed="true">Return to player</button>
               </div>
               <section class="board-3d-info" id="board-3d-info" aria-label="Selected board space" hidden>
@@ -121,7 +121,7 @@
               </section>
             </div>
             <p class="board-fallback-message" id="board-fallback-message" role="status"></p>
-            <div class="game-board" id="game-board" role="grid" aria-label="City Fortune board"></div>
+            <div class="game-board" id="game-board" role="grid" aria-label="PUI Fortune board"></div>
             <details class="board-keyboard-list"><summary>Browse all 36 spaces</summary><div class="board-space-buttons" id="board-space-buttons"></div></details>
           </section>
 
@@ -163,7 +163,7 @@
 
     <dialog class="game-dialog rules-dialog" id="rules-dialog" aria-labelledby="rules-title">
       <div class="dialog-header"><span class="dialog-icon"><svg aria-hidden="true"><use href="#i-bank"></use></svg></span><button class="icon-button close-rules" type="button" aria-label="Close rules"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></div>
-      <p class="eyebrow">City Fortune rulebook</p><h2 id="rules-title">Play the city your way.</h2>
+      <p class="eyebrow">PUI Fortune rulebook</p><h2 id="rules-title">Play the city your way.</h2>
       <div class="rules-content">
         <section><h3>Goal</h3><p>After two hours, finish the current round. Your total wealth is cash + property purchase values + your building values. Highest total wins.</p></section>
         <section><h3>On your turn</h3><p>Click your animal token, choose 1–6 steps, then move clockwise and resolve the space. Passing Start earns $200. Buy an open property, pay rent on a rival’s property, or draw a Chance card.</p></section>
@@ -194,7 +194,7 @@
 
     <dialog class="game-dialog end-dialog" id="end-dialog" aria-labelledby="end-title">
       <div class="end-city-art" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-      <p class="eyebrow">The final city ledger</p><h2 id="end-title">City Fortune results</h2><p class="dialog-copy" id="winner-message"></p>
+      <p class="eyebrow">The final city ledger</p><h2 id="end-title">PUI Fortune results</h2><p class="dialog-copy" id="winner-message"></p>
       <div class="scoreboard" id="scoreboard"></div>
       <div class="dialog-actions"><button class="primary-button" id="play-again-button" type="button">Play again</button></div>
     </dialog>

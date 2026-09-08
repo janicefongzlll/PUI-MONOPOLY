@@ -1,8 +1,8 @@
 import * as THREE from '../../vendor/three.module.min.js';
-import { createBoardLayout, tokenOffset, TILE_TOP, wrapIndex } from './boardLayout.mjs';
+import { createBoardLayout, boardSpans, tokenOffset, TILE_TOP, wrapIndex } from './boardLayout.mjs';
 import { BoardResources, StaticCityBatch } from './resources.mjs';
 import { BoardTile3D, createLabelAtlas } from './BoardTile3D.mjs';
-import { PlayerToken3D } from './PlayerToken3D.mjs';
+import { PlayerToken3D, TOKEN_LAYER } from './PlayerToken3D.mjs';
 import { addPropertyLandmark } from './PropertyLandmark.mjs';
 import { BoardCamera, CAMERA_MODES } from './BoardCamera.mjs';
 import { LandingEffect } from './LandingEffect.mjs';
@@ -12,7 +12,8 @@ import { hopToken, bounceToken, animate } from '../../animation/tokenMovement.mj
 export class CityBoard3D {
   constructor({ host, spaces, corners, onToken, onTile, onError }) {
     this.host = host; this.spaces = spaces; this.onToken = onToken; this.onTile = onTile; this.onError = onError;
-    this.layout = createBoardLayout(spaces, corners); this.tokens = new Map(); this.session = null; this.movingId = null;
+    this.layout = createBoardLayout(spaces, corners); this.spans = boardSpans(corners, spaces.length);
+    this.tokens = new Map(); this.session = null; this.movingId = null;
     this.resources = new BoardResources(); this.scene = new THREE.Scene();
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
@@ -23,14 +24,14 @@ export class CityBoard3D {
     this.renderer.domElement.setAttribute('aria-label', 'Interactive 3D PUI Fortune board. Tap a piece to move or a tile to inspect it.');
     this.renderer.domElement.setAttribute('role', 'img');
     this.host.appendChild(this.renderer.domElement);
-    this.camera = new THREE.PerspectiveCamera(44, 1, 0.1, 220);
+    this.camera = new THREE.PerspectiveCamera(44, 1, 0.1, Math.max(...this.spans) * 8);
     this.cameraControl = new BoardCamera(this.camera, this.reducedMotion, mode => {
       const button = document.getElementById('board-view-button');
       if (button) { button.textContent = mode === CAMERA_MODES.OVERVIEW ? 'Return to player' : 'View board'; button.setAttribute('aria-pressed', String(mode === CAMERA_MODES.OVERVIEW)); }
       this.host.dataset.camera = mode;
-    });
+    }, this.spans);
     const batch = new StaticCityBatch(this.resources);
-    this.environment = createBoardEnvironment(this.scene, this.resources, batch);
+    this.environment = createBoardEnvironment(this.scene, this.resources, batch, this.spans);
     this.labelMaterial = createLabelAtlas(spaces, this.resources);
     this.tiles = spaces.map((space, index) => {
       const tile = new BoardTile3D(space, this.layout[index], this.resources, this.labelMaterial);
@@ -39,9 +40,15 @@ export class CityBoard3D {
     batch.build(this.scene);
     this.landing = new LandingEffect(this.scene);
     this.raycaster = new THREE.Raycaster(); this.pointer = new THREE.Vector2();
-    this.handleClick = event => this.pick(event);
-    this.renderer.domElement.addEventListener('click', this.handleClick);
-    this.renderer.domElement.addEventListener('webglcontextlost', event => { event.preventDefault(); this.onError?.(new Error('3D context lost')); });
+    this.drags = new Map(); this.dragDistance = 0; this.pinchSpan = 0;
+    const canvas = this.renderer.domElement;
+    canvas.addEventListener('pointerdown', event => this.dragStart(event));
+    canvas.addEventListener('pointermove', event => this.dragMove(event));
+    canvas.addEventListener('pointerup', event => this.dragEnd(event));
+    canvas.addEventListener('pointercancel', event => this.dragEnd(event));
+    canvas.addEventListener('wheel', event => { event.preventDefault(); this.cameraControl.zoom(event.deltaY > 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+    canvas.addEventListener('click', event => this.pick(event));
+    canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); this.onError?.(new Error('3D context lost')); });
     this.resizeObserver = new ResizeObserver(() => this.resize()); this.resizeObserver.observe(host);
     this.lastTime = 0; this.lastShadow = 0;
     this.renderer.setAnimationLoop(time => this.frame(time));
@@ -58,7 +65,7 @@ export class CityBoard3D {
   positionFor(player, position = player.position) {
     const tile = this.layout[wrapIndex(position)];
     const offset = tokenOffset(this.session.players, player, position);
-    return new THREE.Vector3(tile.x - tile.inward[0] * 0.1 + offset.x, TILE_TOP, tile.z - tile.inward[1] * 0.1 + offset.z);
+    return new THREE.Vector3(tile.x + tile.inward[0] * tile.tokenAt + offset.x, TILE_TOP, tile.z + tile.inward[1] * tile.tokenAt + offset.z);
   }
 
   directionAt(position, nextPosition = wrapIndex(position + 1)) {
@@ -86,7 +93,7 @@ export class CityBoard3D {
       const changedPlayer = this.activePlayer !== active.id;
       this.activePlayer = active.id;
       this.cameraControl.track(this.tokens.get(active.id).group.position, this.directionAt(active.position), CAMERA_MODES.IDLE);
-      if (changedPlayer && !changedGame && this.cameraControl.mode !== CAMERA_MODES.OVERVIEW) this.cameraControl.returnToPlayer();
+      if (changedPlayer && !changedGame && !this.cameraControl.manual) this.cameraControl.returnToPlayer();
     }
     this.updateCaption(); this.renderer.shadowMap.needsUpdate = true;
   }
@@ -107,7 +114,7 @@ export class CityBoard3D {
     const firstNext = pending.route[pending.nextStep] ?? p.position;
     this.cameraControl.follow(token.group.position, this.directionAt(p.position, firstNext));
     // Give the camera time to descend from overview before the first hop.
-    if (!(await animate(this.reducedMotion ? 1 : 420, () => {}, signal))) return false;
+    if (!(await animate(this.reducedMotion ? 220 : 420, () => {}, signal))) return false;
     for (let i = pending.nextStep; i < pending.route.length; i++) {
       const nextIndex = pending.route[i]; const previousIndex = p.position;
       const destination = this.positionFor(p, nextIndex);
@@ -141,8 +148,38 @@ export class CityBoard3D {
     if (this.cameraControl.mode === CAMERA_MODES.OVERVIEW) this.cameraControl.returnToPlayer(); else this.cameraControl.overview();
   }
 
+  // Drag to orbit, wheel or pinch to zoom. Any of these hands the camera to the player
+  // until they press a view button or the next move takes it back.
+  twoFingerSpan() {
+    const [a, b] = [...this.drags.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+  }
+  dragStart(event) {
+    this.renderer.domElement.setPointerCapture?.(event.pointerId);
+    this.drags.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (this.drags.size === 1) this.dragDistance = 0;
+    this.pinchSpan = this.drags.size === 2 ? this.twoFingerSpan() : 0;
+  }
+  dragMove(event) {
+    const last = this.drags.get(event.pointerId);
+    if (!last) return;
+    const dx = event.clientX - last.x, dy = event.clientY - last.y;
+    last.x = event.clientX; last.y = event.clientY;
+    this.dragDistance += Math.hypot(dx, dy);
+    if (this.drags.size === 2) {
+      const span = this.twoFingerSpan();
+      if (this.pinchSpan) this.cameraControl.zoom(this.pinchSpan / span);
+      this.pinchSpan = span;
+    } else if (this.drags.size === 1) this.cameraControl.orbit(dx, dy);
+  }
+  dragEnd(event) {
+    this.drags.delete(event.pointerId);
+    this.pinchSpan = this.drags.size === 2 ? this.twoFingerSpan() : 0;
+  }
+
   pick(event) {
-    if (!this.session) return;
+    // A drag that ends on the board is a camera move, not a tap on what sits under it.
+    if (!this.session || this.dragDistance > 6) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
@@ -167,7 +204,16 @@ export class CityBoard3D {
     this.tokens.forEach(token => token.faceCamera(this.camera));
     // The city is static: refresh shadow maps only for state changes or at 15fps during hops.
     if (this.movingId !== null && time - this.lastShadow > 66) { this.renderer.shadowMap.needsUpdate = true; this.lastShadow = time; }
-    try { this.renderer.render(this.scene, this.camera); } catch (error) { this.onError?.(error); }
+    try {
+      this.renderer.render(this.scene, this.camera);
+      // Overlay pass: clear depth and redraw only the tokens, so buildings can never occlude a piece
+      // while shadows, positions and intra-token depth from the first pass stay intact.
+      const background = this.scene.background;
+      this.scene.background = null; this.renderer.autoClear = false; this.renderer.clearDepth();
+      this.camera.layers.set(TOKEN_LAYER);
+      this.renderer.render(this.scene, this.camera);
+      this.camera.layers.set(0); this.renderer.autoClear = true; this.scene.background = background;
+    } catch (error) { this.onError?.(error); }
   }
 
   cancel() { this.movingId = null; }

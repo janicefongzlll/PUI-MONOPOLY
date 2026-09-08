@@ -41,10 +41,10 @@ function engine() {
 
 test('exact original 36-space order, price, rent, corners and stations', () => {
   const e = engine();
-  assert.deepEqual(e.plain('cornerAt'), [0,12,18,30]);
+  assert.deepEqual(e.plain('cornerAt'), [0,10,18,28]);
   assert.deepEqual(e.plain('stationPositions'), [6,16]);
   assert.equal(e.run('spaces.length'), 36); assert.equal(e.run('properties.length'), 24);
-  assert.deepEqual(e.plain('spaces.map(s=>s.name)'), ['Start','Taipei 101','Chance','Petronas Twin Towers','Income Tax','Marina Bay Sands','Transit Station','Burj Khalifa','Chance','Eiffel Tower','Sagrada Família','Colosseum','Jail','City Maintenance','Chance','Big Ben','Transit Station','Acropolis','Free Parking','Christ the Redeemer','Chance','Machu Picchu','Taj Mahal','Angkor Wat','Sydney Opera House','Golden Gate Bridge','Statue of Liberty','Moai of Rapa Nui','Chichén Itzá','Pyramids of Giza','Go to Jail','Neuschwanstein Castle','Mount Fuji','Great Wall of China','Hagia Sophia','Grand Canyon']);
+  assert.deepEqual(e.plain('spaces.map(s=>s.name)'), ['Start','Taipei 101','Chance','Petronas Twin Towers','Income Tax','Marina Bay Sands','Transit Station','Burj Khalifa','Chance','Eiffel Tower','Jail','Sagrada Família','Colosseum','City Maintenance','Chance','Big Ben','Transit Station','Acropolis','Free Parking','Christ the Redeemer','Chance','Machu Picchu','Taj Mahal','Angkor Wat','Sydney Opera House','Golden Gate Bridge','Statue of Liberty','Moai of Rapa Nui','Go to Jail','Chichén Itzá','Pyramids of Giza','Neuschwanstein Castle','Mount Fuji','Great Wall of China','Hagia Sophia','Grand Canyon']);
   assert.deepEqual(e.plain('properties.map(p=>[p.price,p.rent])'), [[80,10],[100,12],[120,14],[140,16],[160,18],[180,20],[200,22],[220,24],[240,26],[260,28],[280,30],[300,32],[320,34],[340,36],[360,38],[380,40],[400,42],[420,44],[440,46],[460,48],[480,50],[500,52],[520,54],[560,58]]);
 });
 test('1–6 movement visits each intermediate tile; only final tile resolves', async () => {
@@ -86,7 +86,7 @@ test('purchase/pass, own landmark and both taxes keep existing rules',()=>{
   assert.equal(e.run('state.pending.kind'),'purchase'); e.run('ui.actions[0].action()');
   assert.equal(e.run('player().cash'),920); assert.equal(e.run('propertyAt[1].owner'),0);
   assert.equal(e.run('player().turns'),1);
-  for (const [pos,cost] of [[4,100],[13,50],[18,0],[12,0]]) {
+  for (const [pos,cost] of [[4,100],[13,50],[18,0],[10,0]]) {
     const t=engine(); t.run(`player().position=${pos};resolveSpace(player());`);
     assert.equal(t.run('player().cash'),1000-cost); assert.equal(t.run('player().turns'),1);
   }
@@ -111,7 +111,7 @@ test('all Chance effects preserve original rewards and resolution behavior',asyn
     if(i===5) assert.equal(e.run('state.resolved'),31);
     if(i===6) {assert.equal(e.run('player().position'),6);assert.equal(e.run('player().turns'),1);}
     if(i===7) assert.equal(e.run('player().jailPasses'),1);
-    if(i===8) {assert.equal(e.run('player().position'),12);assert.equal(e.run('player().jailed'),true);}
+    if(i===8) {assert.equal(e.run('player().position'),10);assert.equal(e.run('player().jailed'),true);}
     if(i===9) assert.equal(e.run('state.resolved'),22);
   }
 });
@@ -171,6 +171,34 @@ test('existing cloud save/load endpoints round-trip pending decisions and moveme
   await e.run('chooseSteps(3)');await e.run('saveGame(false)');e.run('state=null;afterStep=null;');await e.run('loadCloudGame("test-game")');
   await e.run('movementPromise');
   assert.equal(e.run('player().cash'),1200);assert.equal(e.run('player().position'),2);assert.equal(e.run('state.pending.kind'),'chance');
+});
+
+test('board 1 and board 2 saves remap positions to the current numbering', async()=>{
+  const supabaseMock=`supabaseClient={from(){return {select(){return {eq(){return {async single(){return {data:{id:'g',name:'Old save',game_state:cloud},error:null};}};}};}};}};`;
+  const e=engine();
+  e.run(`
+    authUser={id:'u'}; state.gameId='g'; state.gameName='Old save';
+    old=JSON.parse(JSON.stringify(state));
+    old.players[0].position=12; old.players[1].position=30; old.phase='decision';
+    old.pending={kind:'rent', pos:28};
+    cloud={board:2, state:old, properties:[{position:28,name:'Chichén Itzá',owner:1,building:true}]};
+    ${supabaseMock}
+  `);
+  await e.run('loadCloudGame("g")');
+  assert.equal(e.run('state.players[0].position'),10);   // 13x7 Jail corner -> 11x9 Jail corner
+  assert.equal(e.run('state.players[1].position'),28);   // 13x7 Go to Jail -> 11x9 Go to Jail
+  assert.equal(e.run('state.pending.pos'),29);           // Chichén Itzá's index under 11x9
+  assert.equal(e.run('propertyAt[29].owner'),1); assert.equal(e.run('propertyAt[29].building'),true);
+  assert.ok(e.run('ui.actions.length')>0);
+  const t=engine();
+  t.run(`
+    authUser={id:'u'}; state.gameId='g'; state.gameName='Old save';
+    old=JSON.parse(JSON.stringify(state)); old.players[0].position=9;
+    cloud={state:old, properties:[]};
+    ${supabaseMock}
+  `);
+  await t.run('loadCloudGame("g")');
+  assert.equal(t.run('state.players[0].position'),10);   // 10x10 Jail corner (no board tag)
 });
 
 (async()=>{

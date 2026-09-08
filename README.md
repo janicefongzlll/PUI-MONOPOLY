@@ -1,6 +1,6 @@
-# City Fortune
+# PUI Fortune
 
-City Fortune is an original, playable property-trading tabletop game for **2–4 groups**. The goal: finish a two-hour city session with the highest total wealth.
+PUI Fortune is an original, playable property-trading tabletop game for **2–4 groups**. The goal: finish a two-hour city session with the highest total wealth.
 
 ## Run it
 
@@ -8,7 +8,7 @@ This is a vanilla JavaScript webpage with a locally bundled Three.js renderer. S
 
 ## Included gameplay
 
-- 36-space square board with 24 individually priced world landmarks, including Taipei 101 and the Petronas Twin Towers
+- 36-space board (an 11x9 ring) with 24 individually priced world landmarks, including Taipei 101 and the Petronas Twin Towers
 - Animal player tokens placed on their current board space; click the active animal and choose 1–6 steps
 - Property buying, rent, one City Upgrade per property, and player-to-player trading
 - Four Chance spaces with cash, movement, Jail, and Get Out of Jail effects
@@ -39,12 +39,13 @@ With blank Supabase configuration, the game continues to work as a local, unsave
 The original `app.js` remains the only game engine. It owns the 36-space ordering, cash, ownership, rules, accounts and final scoring. No React migration or second engine is involved.
 
 - `components/board3d/CityBoard3D.mjs` reads the current game state and composes tiles, tokens, lightweight landmarks, lighting, and landing effects.
-- `boardLayout.mjs` makes the board physically square while keeping the original index ordering and corner indices `[0, 12, 18, 30]`. The two shorter runs have wider spaces; save version `board: 2` remains compatible.
-- `BoardCamera.mjs` owns FOLLOW, LANDING, OVERVIEW and IDLE, including look-ahead and damped corner rotation. View Board / Return to Player only affect the camera.
+- `boardLayout.mjs` makes the board physically square while keeping the engine's ring ordering and corner indices `[0, 10, 18, 28]`. The two shorter runs have slightly wider spaces; saves written under the earlier 10x10 (`board: 1`) and 13x7 (`board: 2`) numberings are remapped on load.
+- Spaces are twice as deep as they are wide, the way a real board's are, and carry a square name plate. A bought landmark is washed in its owner's colour on both the 3D and classic boards; ownership itself still lives only in `properties[].owner`.
+- `BoardCamera.mjs` owns FOLLOW, LANDING, OVERVIEW, IDLE and FREE, including look-ahead and damped corner rotation. Drag to orbit and wheel or pinch to zoom put it in FREE; View Board / Return to Player and the start of any move take it back. A drag never counts as a tap on the piece or tile underneath. All of this affects the camera only.
 - `animation/tokenMovement.mjs` performs hop arcs and landing bounces. The engine commits position only after each hop completes, then calls the existing destination rules after the final landing.
 - Movement intent, the next unfinished hop and the Start reward flag are saved as a plain `state.pending` movement record. A saved movement resumes without duplicate cash rewards. Turn handoffs and completed games are also explicit saved states.
 - The existing Frog, Monkey, Wolf and Horse identities are represented by simple 3D figurines. Older saved animal identities remain supported.
-- The classic HTML board remains available automatically if WebGL or the 3D module cannot load. Reduced-motion preferences use a steady overview and smaller hops.
+- The classic HTML board remains available automatically if WebGL or the 3D module cannot load. Reduced-motion preferences keep the step-by-step follow camera but use smaller hops and quicker, less sweeping camera settling.
 
 The scene uses shared geometry/materials, instanced city details, one shadow light, capped pixel density and no post-processing. Three.js r185 is bundled in `vendor/` with its MIT license, so the 3D layer makes no external asset requests.
 

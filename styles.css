@@ -249,7 +249,9 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 .tip-chip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 999px; background: var(--chip); color: #fff; font-size: 10px; font-weight: 800; }
 
 /* Ownership pips, just inside the ring -------------------------------------------- */
-.space.owned::after { content: none; }
+/* A bought landmark is washed in its owner's colour, matching the 3D board. The wash sits
+   above the landmark art (z-index 0) and below the name and price (z-index 2). */
+.space.owned::after { content: ""; position: absolute; inset: 0; z-index: 1; width: auto; height: auto; border-radius: 0; background: var(--owner-color); opacity: .34; box-shadow: none; pointer-events: none; }
 .owner-pip { position: relative; z-index: 6; width: clamp(8px, 1vw, 14px); height: clamp(8px, 1vw, 14px); border: 2px solid var(--wd-panel-border); border-radius: 50%; background: var(--pip-color); box-shadow: 0 0 0 2px #fff, 2px 2px 0 rgba(23, 48, 26, .28); pointer-events: none; }
 .owner-pip-built { border-radius: 4px; }
 .owner-pip-top { align-self: start; justify-self: center; margin-top: 8%; }
@@ -266,12 +268,12 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 .owner-pip-built::before { content: ""; position: absolute; inset: 0 0 auto; height: 48%; background: color-mix(in srgb, var(--pip-color) 62%, #10240f); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .owner-pip-built::after { content: ""; position: absolute; left: 14%; bottom: 0; width: 72%; height: 56%; border: 1.5px solid var(--wd-panel-border); border-radius: 1px 1px 2px 2px; background: linear-gradient(100deg, color-mix(in srgb, var(--pip-color) 78%, #10240f) 38%, var(--pip-color) 38%); }
 
-/* Landscape board: 13 x 7 ring instead of 10 x 10 --------------------------------- */
-.game-board { aspect-ratio: 13 / 7; grid-template-columns: repeat(13, 1fr); grid-template-rows: repeat(7, 1fr); }
-.city-center { grid-column: 2 / 13; grid-row: 2 / 7; }
-.is-fullscreen .game-board { max-width: min(100%, calc((100dvh - 140px) * 13 / 7)); }
+/* Landscape board: 11 x 9 ring keeps the four edges nearly even ------------------- */
+.game-board { aspect-ratio: 11 / 9; grid-template-columns: repeat(11, 1fr); grid-template-rows: repeat(9, 1fr); }
+.city-center { grid-column: 2 / -2; grid-row: 2 / -2; }
+.is-fullscreen .game-board { max-width: min(100%, calc((100dvh - 140px) * 11 / 9)); }
 @media (max-width: 900px) { .game-board { max-width: 1000px; } }
-@media (max-width: 600px) { .city-center { grid-column: 2 / 13; grid-row: 2 / 7; } }
+@media (max-width: 600px) { .city-center { grid-column: 2 / -2; grid-row: 2 / -2; } }
 
 /* City wire moved into a dialog ---------------------------------------------------- */
 .log-dialog { width: min(560px, calc(100vw - 32px)); }
@@ -324,8 +326,8 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
    repeat(N, 1fr) is minmax(auto, 1fr), so the pile of pieces at Start stretched the
    bottom row and squashed the rest. minmax(0, 1fr) pins every track to an equal share;
    the taller aspect-ratio then gives every box the roomier height the bottom row had. */
-.game-board { aspect-ratio: 13 / 9.3; grid-template-columns: repeat(13, minmax(0, 1fr)); grid-template-rows: repeat(7, minmax(0, 1fr)); }
-.is-fullscreen .game-board { max-width: min(100%, calc((100dvh - 140px) * 13 / 9.3)); }
+.game-board { aspect-ratio: 11 / 12; grid-template-columns: repeat(11, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr)); }
+.is-fullscreen .game-board { max-width: min(100%, calc((100dvh - 140px) * 11 / 12)); }
 
 /* Mini game challenge stakes ------------------------------------------------------ */
 .challenge-stakes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

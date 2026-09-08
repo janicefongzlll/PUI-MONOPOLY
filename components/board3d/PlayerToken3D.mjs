@@ -1,5 +1,9 @@
 import * as THREE from '../../vendor/three.module.min.js';
 
+// Tokens are duplicated onto this layer for CityBoard3D's depth-cleared overlay pass,
+// which keeps every piece fully visible in front of buildings without moving it.
+export const TOKEN_LAYER = 1;
+
 // Artwork is purely presentational; animal identities in saved games stay unchanged.
 const TOKEN_ART = {
   frog: { size: 1.5, foot: 0.18 },
@@ -59,6 +63,7 @@ export class PlayerToken3D {
     // An invisible, generous tap target for small screens.
     const hit = mesh('sphere', new THREE.MeshBasicMaterial({ visible: false }), [0, 0.75, 0], [0.55, 0.8, 0.55]);
     hit.userData.playerId = player.id;
+    this.group.traverse(object => object.layers.enable(TOKEN_LAYER));
   }
   sync(player, active) { this.halo.visible = active; this.jailRing.visible = player.jailed; }
   faceCamera(camera) {

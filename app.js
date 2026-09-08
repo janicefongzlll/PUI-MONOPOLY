@@ -1,7 +1,7 @@
 // Board geometry. 36 spaces sit on the perimeter of a COLS x ROWS grid, so
-// COLS + ROWS must equal 20. 13x7 is close to 16:9 for landscape screens.
-const BOARD_COLS = 13;
-const BOARD_ROWS = 7;
+// COLS + ROWS must equal 20. 11x9 keeps the four edge runs nearly even.
+const BOARD_COLS = 11;
+const BOARD_ROWS = 9;
 const EDGE_LONG = BOARD_COLS - 2;   // spaces along the top and bottom, between corners
 const EDGE_SHORT = BOARD_ROWS - 2;  // spaces up each side, between corners
 const EDGE_RUN = [EDGE_LONG, EDGE_SHORT, EDGE_LONG, EDGE_SHORT];
@@ -54,15 +54,17 @@ const propertyAt = Object.fromEntries(properties.map(p => [p.position, p]));
 const stationPositions = spaces.map((space, index) => (space.type === "station" ? index : -1)).filter(index => index >= 0);
 
 
-// Saves written before the board became 13x7 used the old 10x10 numbering.
-const legacyPositionMap = (() => {
-  const oldCorners = [0, 9, 18, 27];
+// Saves carry the numbering of the shape they were written on. The ring order
+// never changes, so each historic shape is identified by its corner indices alone.
+const SAVE_BOARD_VERSION = 3; // 1: 10x10, 2: 13x7, 3: 11x9
+const positionMapFrom = (oldCorners) => {
   const oldRing = Array.from({ length: 36 }, (_, i) => i).filter(i => !oldCorners.includes(i));
   const map = Object.fromEntries(oldCorners.map((old, i) => [old, cornerAt[i]]));
   let cursor = 0;
   spaces.forEach((space, index) => { if (!cornerAt.includes(index)) map[oldRing[cursor++]] = index; });
   return map;
-})();
+};
+const savedPositionMaps = { 1: positionMapFrom([0, 9, 18, 27]), 2: positionMapFrom([0, 12, 18, 30]) };
 
 const posToGrid = (position) => {
   const [bottomRight, bottomLeft, topLeft, topRight] = cornerAt;
@@ -116,7 +118,7 @@ function cancelBoardAnimation() {
 }
 
 function useBoardFallback(error) {
-  console.warn("City Fortune 3D unavailable; using the existing board.", error);
+  console.warn("PUI Fortune 3D unavailable; using the existing board.", error);
   board3DFailed = true;
   board3D?.dispose(); board3D = null;
   $("board-3d-stage").hidden = true;
@@ -411,7 +413,7 @@ async function deleteCloudGame(gameId, gameName) {
 
 function snapshotGame() {
   return {
-    board: 2,
+    board: SAVE_BOARD_VERSION,
     state: JSON.parse(JSON.stringify(state)),
     properties: properties.map(property => ({ position: property.position, name: property.name, owner: property.owner, building: property.building }))
   };
@@ -482,14 +484,20 @@ async function loadCloudGame(gameId) {
   if (!snapshot?.state || !Array.isArray(snapshot.properties)) { toast("This saved game is not valid."); return; }
   cancelBoardAnimation();
   resetSync();
-  const legacy = snapshot.board !== 2;
+  const remap = snapshot.board === SAVE_BOARD_VERSION ? null : (savedPositionMaps[snapshot.board] || savedPositionMaps[1]);
+  const remapPos = position => (remap ? remap[position] ?? 0 : position);
   properties.forEach(property => { property.owner = null; property.building = false; });
   snapshot.properties.forEach(saved => {
-    const property = properties.find(p => p.name === saved.name) || propertyAt[legacy ? legacyPositionMap[saved.position] : saved.position];
+    const property = properties.find(p => p.name === saved.name) || propertyAt[remapPos(saved.position)];
     if (property) { property.owner = saved.owner; property.building = saved.building; }
   });
   state = { ...snapshot.state, gameId: game.id, gameName: game.name };
-  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id % playerAnimals.length], position: legacy ? (legacyPositionMap[savedPlayer.position] ?? 0) : savedPlayer.position }));
+  state.players = state.players.map((savedPlayer, id) => ({ ...savedPlayer, animal: savedPlayer.animal || playerAnimals[id % playerAnimals.length], position: remapPos(savedPlayer.position) }));
+  if (remap && state.pending) {
+    if (Array.isArray(state.pending.route)) state.pending.route = state.pending.route.map(remapPos);
+    if (state.pending.pos !== undefined) state.pending.pos = remapPos(state.pending.pos);
+    if (state.pending.target !== undefined) state.pending.target = remapPos(state.pending.target);
+  }
   $("lobby-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   lastSyncedAt = new Date(); saveDirty = false; setSync("saved");
@@ -596,7 +604,7 @@ function renderBoard() {
     return `<i class="owner-pip owner-pip-${edge} ${space.building ? "owner-pip-built" : ""}" style="grid-row:${pipRow};grid-column:${pipCol};--pip-color:${holder.color}" aria-hidden="true">${icon(`pip-${holder.animal.pip || "grass"}`)}</i>`;
   }).join("");
 
-  board.innerHTML = `${cells}<section class="city-center" aria-label="City Fortune"><div class="center-plaque"><p class="center-eyebrow">Buy · Trade · Build</p><h1 class="center-title">CITY<span>FORTUNE</span></h1></div><div class="center-dice" aria-hidden="true"><span class="die die-a"><i></i><i></i><i></i></span><span class="die die-b"><i></i><i></i><i></i><i></i></span></div></section>${racks}${owners}`;
+  board.innerHTML = `${cells}<section class="city-center" aria-label="PUI Fortune"><div class="center-plaque"><p class="center-eyebrow">Buy · Trade · Build</p><h1 class="center-title">PUI<span>FORTUNE</span></h1></div><div class="center-dice" aria-hidden="true"><span class="die die-a"><i></i><i></i><i></i></span><span class="die die-b"><i></i><i></i><i></i><i></i></span></div></section>${racks}${owners}`;
   board.querySelectorAll(".token").forEach(token => token.addEventListener("click", () => {
     const selected = state.players[Number(token.dataset.playerId)];
     if (selected.id !== state.currentPlayer) { toast(`It is ${player().name}'s turn.`); return; }
