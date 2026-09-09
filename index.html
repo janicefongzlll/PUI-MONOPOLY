@@ -206,8 +206,16 @@
     </dialog>
 
     <div class="toast-region" aria-live="polite" aria-atomic="true" id="toast-region"></div>
+    <section class="event-fx" id="event-fx" aria-live="assertive" aria-atomic="true" hidden>
+      <div class="event-fx-veil"></div>
+      <div class="event-fx-particles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="event-fx-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="event-fx-train" aria-hidden="true"><span>●</span><span></span><span></span><span></span><b>→</b></div>
+      <div class="event-fx-copy"><p id="event-fx-kicker"></p><strong id="event-fx-amount"></strong><h2 id="event-fx-label"></h2></div>
+    </section>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="presentation-effects.js"></script>
     <script src="app.js"></script>
       <div class="space-tip" id="space-tip" role="tooltip" hidden></div>
   </body>

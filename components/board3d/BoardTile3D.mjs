@@ -50,8 +50,21 @@ export class BoardTile3D {
     this.label.rotation.set(-Math.PI / 2, 0, -layout.rotation);
     this.label.position.set(layout.inward[0] * layout.labelAt, 0.425, layout.inward[1] * layout.labelAt);
     this.group.add(this.label);
-    this.upgrade = resources.mesh('cone', resources.material('#e3bf68', 0.65), [layout.inward[0] * layout.upgradeAt, 0.75, layout.inward[1] * layout.upgradeAt], [0.22, 0.6, 0.22], this.group);
+    this.upgradeMaterial = new THREE.MeshStandardMaterial({ color: '#e3bf68', metalness: .65, roughness: .24, emissive: '#a56a08', emissiveIntensity: .35 });
+    this.upgrade = new THREE.Mesh(resources.geometry('cone'), this.upgradeMaterial);
+    this.upgrade.position.set(layout.inward[0] * layout.upgradeAt, .75, layout.inward[1] * layout.upgradeAt); this.upgrade.scale.set(.22, .6, .22); this.group.add(this.upgrade);
     this.upgrade.visible = false;
+    const fairyGeometry = new THREE.BufferGeometry(); const fairyPoints = new Float32Array(36 * 3);
+    for (let i = 0; i < 36; i++) {
+      const ringIndex = i % 12, layer = Math.floor(i / 12), angle = ringIndex * Math.PI * 2 / 12 + layer * .19;
+      const ring = [.58, .42, .3][layer];
+      fairyPoints.set([Math.cos(angle) * ring, .34 + layer * .28 + (ringIndex % 4) * .16, Math.sin(angle) * ring], i * 3);
+    }
+    fairyGeometry.setAttribute('position', new THREE.BufferAttribute(fairyPoints, 3));
+    this.fairyMaterial = new THREE.PointsMaterial({ color: '#fff6bd', size: .115, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+    this.fairyLights = new THREE.Points(fairyGeometry, this.fairyMaterial);
+    this.fairyLights.position.set(layout.inward[0] * layout.landmarkAt, .48, layout.inward[1] * layout.landmarkAt); this.fairyLights.visible = false; this.group.add(this.fairyLights);
+    this.upgradeGlowTime = 0; this.upgradePulse = 0; this.isUpgraded = false;
   }
   sync(space, players) {
     const holder = space.owner === undefined || space.owner === null ? null : players.find(p => p.id === space.owner);
@@ -67,10 +80,34 @@ export class BoardTile3D {
         this.label.material.color.lerp(tint, 0.5);
       }
     }
-    this.upgrade.visible = Boolean(space.building);
+    const upgraded = Boolean(space.building);
+    this.upgrade.visible = upgraded;
+    // Saved upgrades receive the same gentle entrance as upgrades made this turn.
+    if (upgraded && !this.isUpgraded) { this.upgradeGlowTime = 1.4; this.fairyLights.visible = true; }
+    if (!upgraded) { this.fairyLights.visible = false; this.fairyMaterial.opacity = 0; }
+    this.isUpgraded = upgraded;
+  }
+  playUpgradeGlow() { this.upgradeGlowTime = 1.9; this.fairyLights.visible = true; }
+  update(delta) {
+    if (!this.isUpgraded) return;
+    this.upgradePulse += delta;
+    if (this.upgradeGlowTime > 0) {
+      this.upgradeGlowTime = Math.max(0, this.upgradeGlowTime - delta);
+      const appeared = 1 - this.upgradeGlowTime / 1.9;
+      const ease = 1 - (1 - appeared) * (1 - appeared);
+      this.fairyLights.scale.setScalar(.68 + ease * .32);
+      this.fairyMaterial.opacity = ease * .96;
+      this.upgradeMaterial.emissiveIntensity = .42 + ease * .42;
+      return;
+    }
+    // Small warm fairy lights remain around the model without altering its materials.
+    const pulse = 1 + Math.sin(this.upgradePulse * 2.2) * .07;
+    this.fairyLights.visible = true; this.fairyLights.rotation.y += delta * .55; this.fairyLights.scale.setScalar(pulse);
+    this.fairyMaterial.opacity = .72 + Math.sin(this.upgradePulse * 3.8) * .18;
+    this.upgradeMaterial.emissiveIntensity = .55 + Math.sin(this.upgradePulse * 2.2) * .08;
   }
   dispose() {
-    this.label.geometry.dispose(); this.owner.material.dispose();
+    this.label.geometry.dispose(); this.owner.material.dispose(); this.upgradeMaterial.dispose(); this.fairyLights.geometry.dispose(); this.fairyMaterial.dispose();
     if (this.ownable) { this.body.material.dispose(); this.label.material.dispose(); }
   }
 }

@@ -148,6 +148,11 @@ export class CityBoard3D {
     if (this.cameraControl.mode === CAMERA_MODES.OVERVIEW) this.cameraControl.returnToPlayer(); else this.cameraControl.overview();
   }
 
+  sparkleUpgrade(position) {
+    const layout = this.layout[wrapIndex(position)];
+    if (layout) { this.tiles[wrapIndex(position)]?.playUpgradeGlow(); this.landing.triggerUpgrade(layout); }
+  }
+
   // Drag to orbit, wheel or pinch to zoom. Any of these hands the camera to the player
   // until they press a view button or the next move takes it back.
   twoFingerSpan() {
@@ -200,7 +205,7 @@ export class CityBoard3D {
   frame(time) {
     const delta = Math.min(0.05, (time - this.lastTime) / 1000 || 0.016); this.lastTime = time;
     if (!this.session || document.hidden || !this.host.offsetWidth) return;
-    this.cameraControl.update(delta); this.landing.update(delta);
+    this.cameraControl.update(delta); this.landing.update(delta); this.tiles.forEach(tile => tile.update(delta));
     this.tokens.forEach(token => token.faceCamera(this.camera));
     // The city is static: refresh shadow maps only for state changes or at 15fps during hops.
     if (this.movingId !== null && time - this.lastShadow > 66) { this.renderer.shadowMap.needsUpdate = true; this.lastShadow = time; }
