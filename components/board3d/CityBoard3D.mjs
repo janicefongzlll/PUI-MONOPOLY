@@ -9,6 +9,15 @@ import { LandingEffect } from './LandingEffect.mjs';
 import { createBoardEnvironment } from './BoardEnvironment.mjs';
 import { hopToken, bounceToken, animate } from '../../animation/tokenMovement.mjs';
 
+// What the browser is actually drawing with, as reported by the driver.
+function describeGPU(renderer) {
+  try {
+    const gl = renderer.getContext();
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    return (info && gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) || gl.getParameter(gl.RENDERER) || 'unknown';
+  } catch { return 'unknown'; }
+}
+
 export class CityBoard3D {
   constructor({ host, spaces, corners, onToken, onTile, onError }) {
     this.host = host; this.spaces = spaces; this.onToken = onToken; this.onTile = onTile; this.onError = onError;
@@ -20,14 +29,23 @@ export class CityBoard3D {
     // Pixel budget. It only ever falls: a picture that keeps switching resolution flickers,
     // and the flight below drops to one device pixel while it fills the whole window.
     this.qualityCap = 1.5; this.slowFrames = 0;
+    // A browser falling back to software rendering cannot afford this scene at full quality.
+    // Say so, and hand it a scene it can actually draw, rather than stuttering through one.
+    this.gpu = describeGPU(this.renderer);
+    if (/swiftshader|software|llvmpipe|basic render|microsoft basic/i.test(this.gpu)) {
+      this.qualityCap = 0.7; this.softwareGPU = true;
+      console.warn(`PUI Fortune 3D is running without GPU acceleration (${this.gpu}). Turn on hardware acceleration in your browser settings for a smooth board.`);
+    }
     this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.qualityCap));
-    this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.enabled = !this.softwareGPU; this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace; this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.05;
     this.renderer.domElement.setAttribute('aria-label', 'Interactive 3D PUI Fortune board. Tap a piece to move or a tile to inspect it.');
     this.renderer.domElement.setAttribute('role', 'img');
     this.host.appendChild(this.renderer.domElement);
-    this.camera = new THREE.PerspectiveCamera(44, 1, 0.1, Math.max(...this.spans) * 8);
+    // A near plane this far out keeps depth precision high across the board. Closer than
+    // this and the stacked flat surfaces of the mill site shimmer against each other.
+    this.camera = new THREE.PerspectiveCamera(44, 1, 0.4, Math.max(...this.spans) * 8);
     this.cameraControl = new BoardCamera(this.camera, this.reducedMotion, mode => {
       const button = document.getElementById('board-view-button');
       if (button) { button.textContent = mode === CAMERA_MODES.OVERVIEW ? 'Return to player' : 'View board'; button.setAttribute('aria-pressed', String(mode === CAMERA_MODES.OVERVIEW)); }
@@ -43,7 +61,13 @@ export class CityBoard3D {
     batch.build(this.scene);
     // The mill site streams in after the first frames, so the static shadow map must be redrawn once it lands.
     this.siteReady = false; this.intro = null;
-    this.scene.addEventListener('site-ready', () => { this.siteReady = true; this.renderer.shadowMap.needsUpdate = true; });
+    this.scene.addEventListener('site-ready', () => {
+      this.siteReady = true;
+      // Compiling the site's materials up front stops the flight stalling for a fifth of a
+      // second the first time each one comes into view.
+      this.renderer.compile(this.scene, this.camera);
+      this.renderer.shadowMap.needsUpdate = true;
+    });
     this.landing = new LandingEffect(this.scene);
     this.raycaster = new THREE.Raycaster(); this.pointer = new THREE.Vector2();
     this.drags = new Map(); this.dragDistance = 0; this.pinchSpan = 0; this.pinchCentre = null; this.panPointer = null;
@@ -67,19 +91,21 @@ export class CityBoard3D {
     this.resize();
   }
 
-  applyPixelRatio() {
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, this.qualityCap, this.cinema ? 1 : Infinity));
-    this.resize();
-  }
+  applyPixelRatio() { this.resize(); }
 
   resize() {
     const { width, height } = this.host.getBoundingClientRect();
     if (!width || !height) return;
+    // Draw to a pixel budget, not to the display's ratio: a board that fills a large screen
+    // would otherwise cost several times what the same board costs in its box on the page.
+    const budget = this.cinema ? 2.1e6 : 3.0e6;
+    const ratio = Math.min(devicePixelRatio || 1, this.qualityCap, Math.sqrt(budget / (width * height)));
     // Setting the size reallocates the drawing buffer, which shows as a flash, so a resize
     // that would not change anything is skipped rather than paid for.
-    const key = `${Math.round(width)}x${Math.round(height)}x${this.renderer.getPixelRatio()}`;
+    const key = `${Math.round(width)}x${Math.round(height)}x${ratio.toFixed(2)}`;
     if (key === this.sizeKey) return;
     this.sizeKey = key;
+    this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(width, height, false); this.camera.aspect = width / height; this.camera.updateProjectionMatrix();
     this.cameraControl.viewportHeight = height;
     this.renderer.shadowMap.needsUpdate = true;

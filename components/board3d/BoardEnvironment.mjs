@@ -81,7 +81,9 @@ export function createBoardEnvironment(scene, resources, batch, [spanX, spanZ]) 
   const scale = Math.min(parkX / SITE_FRAME.width, parkZ / SITE_FRAME.depth);
   const site = new THREE.Group();
   site.scale.setScalar(scale);
-  site.position.set(-SITE_FRAME.x * scale, 0.07, SITE_FRAME.y * scale);
+  // The park's top face is at 0.07. The site's grass starts at its own zero, so sitting the
+  // site on that number left the two coplanar and shimmering against each other.
+  site.position.set(-SITE_FRAME.x * scale, 0.14, SITE_FRAME.y * scale);
   scene.add(site);
 
   // Landmarks the opening fly-through visits, converted from Blender metres to board units.
