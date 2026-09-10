@@ -403,4 +403,11 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 @keyframes money-float { 0%,100%{opacity:0;transform:translateY(22px) rotate(0)} 15%,72%{opacity:.88} 100%{transform:translateY(-155px) rotate(135deg)} }
 @keyframes bars-drop { 0%{opacity:0} 14%,78%{opacity:1} 100%{opacity:0} }.event-fx.is-active.is-jail .event-fx-bars i { animation:bar-drop .42s cubic-bezier(.2,.9,.3,1) both; }.event-fx.is-active.is-jail .event-fx-bars i:nth-child(2){animation-delay:.05s}.event-fx.is-active.is-jail .event-fx-bars i:nth-child(3){animation-delay:.1s}.event-fx.is-active.is-jail .event-fx-bars i:nth-child(4){animation-delay:.15s}.event-fx.is-active.is-jail .event-fx-bars i:nth-child(5){animation-delay:.2s}@keyframes bar-drop{to{transform:translateY(-5%)}}
 @keyframes train-across { 0%{transform:translateX(0)} 100%{transform:translateX(155vw)} }
-@media (prefers-reduced-motion: reduce) { .event-fx *, .event-fx { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
+/* Reduced motion collapses every keyframe to its last frame, and all of these end faded out,
+   which hid the banner completely rather than merely holding it still. Hold the words on
+   screen for their full time instead, and drop the decoration that only reads as movement. */
+@media (prefers-reduced-motion: reduce) {
+  .event-fx *, .event-fx { animation-duration:.01ms!important; transition-duration:.01ms!important; }
+  .event-fx.is-active .event-fx-copy { animation: none !important; opacity: 1; transform: none; }
+  .event-fx-particles, .event-fx-train, .event-fx-bars { display: none; }
+}
