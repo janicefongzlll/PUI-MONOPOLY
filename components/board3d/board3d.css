@@ -55,3 +55,21 @@
   .play-screen:has(.is-3d) .turn-spotlight { display: none; }
   .board-space-buttons { grid-template-columns: 1fr 1fr; }
 }
+
+/* Opening fly-through. The stage takes the whole window while the camera tours the city,
+   then animates its own inset back to the box it occupies in the page, so the board appears
+   to shrink into place and the side menu arrives with it. */
+.board-3d-stage.is-cinema { position: fixed; z-index: 60; top: 0; left: 0; right: 0; bottom: 0; height: auto; border-radius: 0; }
+.board-3d-stage.is-settling { transition: top .62s cubic-bezier(.4,0,.2,1), left .62s cubic-bezier(.4,0,.2,1), right .62s cubic-bezier(.4,0,.2,1), bottom .62s cubic-bezier(.4,0,.2,1), border-radius .62s ease; }
+.board-3d-skip { position: absolute; right: 16px; bottom: 16px; z-index: 6; min-height: 44px; padding: 10px 18px; border: 1px solid #b4cbbe80; border-radius: 12px; background: #f8fbf3ed; color: #183e38; font: 800 14px Nunito, sans-serif; box-shadow: 0 4px 14px #04191833; cursor: pointer; }
+.board-3d-skip:hover { background: #fff; }
+.board-3d-skip[hidden] { display: none; }
+.topbar, .game-toolbar, .game-sidebar, .time-callout, .board-keyboard-list, .board-3d-tools { transition: opacity .5s ease .1s; }
+body.is-cinema { overflow: hidden; }
+body.is-cinema .topbar, body.is-cinema .game-toolbar, body.is-cinema .game-sidebar,
+body.is-cinema .time-callout, body.is-cinema .board-keyboard-list, body.is-cinema .board-3d-tools {
+  opacity: 0; pointer-events: none; transition: opacity .3s ease;
+}
+@media (prefers-reduced-motion: reduce) { .board-3d-stage.is-settling { transition: none; } }
+@keyframes board-fly-in { from { opacity: 0 } to { opacity: 1 } }
+.board-3d-stage canvas.is-flying { animation: board-fly-in .5s ease both; }

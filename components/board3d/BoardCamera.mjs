@@ -1,7 +1,7 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { dampAngle, dampFactor } from '../../animation/cameraMovement.mjs';
 
-export const CAMERA_MODES = Object.freeze({ FOLLOW: 'FOLLOW', LANDING: 'LANDING', OVERVIEW: 'OVERVIEW', IDLE: 'IDLE', FREE: 'FREE' });
+export const CAMERA_MODES = Object.freeze({ FOLLOW: 'FOLLOW', LANDING: 'LANDING', OVERVIEW: 'OVERVIEW', IDLE: 'IDLE', FREE: 'FREE', CINEMA: 'CINEMA' });
 
 export class BoardCamera {
   constructor(camera, reducedMotion = false, onMode, spans = [26, 26]) {
@@ -17,6 +17,8 @@ export class BoardCamera {
     this.heading = Math.PI;
     this.freeTarget = new THREE.Vector3();
     this.freeYaw = 0; this.freePitch = 0.9; this.freeDistance = spans[0];
+    // Panning converts pixels to world units, so it needs the viewport the camera draws into.
+    this.viewportHeight = 800;
     this.camera.position.set(26, 32, 32);
     this.camera.lookAt(0, 0, 0);
     this.onMode?.(this.mode);
@@ -24,7 +26,7 @@ export class BoardCamera {
 
   setMode(mode) { this.mode = mode; this.onMode?.(mode); }
   // Overview and free look are the player's own choices; scripted tracking must not undo them.
-  get manual() { return this.mode === CAMERA_MODES.OVERVIEW || this.mode === CAMERA_MODES.FREE; }
+  get manual() { return this.mode === CAMERA_MODES.OVERVIEW || this.mode === CAMERA_MODES.FREE || this.mode === CAMERA_MODES.CINEMA; }
   track(position, direction, mode = CAMERA_MODES.IDLE) {
     this.focus.copy(position);
     if (direction?.lengthSq()) this.direction.copy(direction).normalize();
@@ -62,8 +64,45 @@ export class BoardCamera {
     const span = Math.max(...this.spans);
     this.freeDistance = THREE.MathUtils.clamp(this.freeDistance * factor, span * 0.1, span * 2.6);
   }
+  // Slide the point being orbited across the screen plane, so free look is not tied to the
+  // board centre. Vertical drags lift or drop it, which is how the camera leaves the table.
+  pan(dx, dy) {
+    this.enterFree();
+    const perPixel = 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * this.freeDistance / this.viewportHeight;
+    const sinYaw = Math.sin(this.freeYaw), cosYaw = Math.cos(this.freeYaw);
+    const sinPitch = Math.sin(this.freePitch), cosPitch = Math.cos(this.freePitch);
+    this.freeTarget.x += (-dx * cosYaw - dy * sinYaw * sinPitch) * perPixel;
+    this.freeTarget.y += dy * cosPitch * perPixel;
+    this.freeTarget.z += (dx * sinYaw - dy * cosYaw * sinPitch) * perPixel;
+    // Keep the board within reach: a pan that wanders off cannot be recovered by dragging back.
+    const span = Math.max(...this.spans);
+    this.freeTarget.x = THREE.MathUtils.clamp(this.freeTarget.x, -span, span);
+    this.freeTarget.y = THREE.MathUtils.clamp(this.freeTarget.y, -span * 0.25, span * 0.6);
+    this.freeTarget.z = THREE.MathUtils.clamp(this.freeTarget.z, -span, span);
+  }
+
+  // Where the overview sits: the opening fly-through ends on this pose, so it can hand the
+  // camera over without a jump.
+  overviewPose(out) {
+    // Fit the projected board bounds, not just its width: the nearest corner
+    // takes much more screen space under perspective, especially on a phone.
+    const eye = new THREE.Vector3(0.48, 0.86, 0.62).normalize();
+    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), eye).normalize();
+    const up = new THREE.Vector3().crossVectors(eye, right);
+    const tanV = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+    const tanH = tanV * this.camera.aspect;
+    let distance = 0;
+    const edgeX = this.spans[0] / 2 + 1, edgeZ = this.spans[1] / 2 + 1;
+    for (const x of [-edgeX, edgeX]) for (const z of [-edgeZ, edgeZ]) for (const y of [-1, 3]) {
+      const point = new THREE.Vector3(x, y, z);
+      distance = Math.max(distance, point.dot(eye) + Math.max(Math.abs(point.dot(right)) / tanH, Math.abs(point.dot(up)) / tanV));
+    }
+    return out.copy(eye).multiplyScalar(distance * 1.12);
+  }
 
   update(delta) {
+    // The opening fly-through drives the camera along its own path.
+    if (this.mode === CAMERA_MODES.CINEMA) return;
     const alpha = dampFactor(this.reducedMotion ? 10 : 4.5, delta);
     const nextPosition = new THREE.Vector3();
     const nextTarget = new THREE.Vector3();
@@ -73,20 +112,7 @@ export class BoardCamera {
         .multiplyScalar(this.freeDistance).add(this.freeTarget);
       nextTarget.copy(this.freeTarget);
     } else if (this.mode === CAMERA_MODES.OVERVIEW) {
-      // Fit the projected board bounds, not just its width: the nearest corner
-      // takes much more screen space under perspective, especially on a phone.
-      const eye = new THREE.Vector3(0.48, 0.86, 0.62).normalize();
-      const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), eye).normalize();
-      const up = new THREE.Vector3().crossVectors(eye, right);
-      const tanV = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
-      const tanH = tanV * this.camera.aspect;
-      let distance = 0;
-      const edgeX = this.spans[0] / 2 + 1, edgeZ = this.spans[1] / 2 + 1;
-      for (const x of [-edgeX, edgeX]) for (const z of [-edgeZ, edgeZ]) for (const y of [-1, 3]) {
-        const point = new THREE.Vector3(x, y, z);
-        distance = Math.max(distance, point.dot(eye) + Math.max(Math.abs(point.dot(right)) / tanH, Math.abs(point.dot(up)) / tanV));
-      }
-      nextPosition.copy(eye).multiplyScalar(distance * 1.12);
+      this.overviewPose(nextPosition);
     } else {
       const desiredHeading = Math.atan2(this.direction.z, this.direction.x);
       this.heading = dampAngle(this.heading, desiredHeading, dampFactor(this.reducedMotion ? 9 : 3.8, delta));
@@ -94,10 +120,12 @@ export class BoardCamera {
       const outside = new THREE.Vector3(forward.z, 0, -forward.x);
       const landing = this.mode === CAMERA_MODES.LANDING;
       const mobile = this.camera.aspect < 0.85;
-      nextPosition.copy(this.focus).addScaledVector(forward, -4.4).addScaledVector(outside, landing ? 6.5 : 8.5);
-      nextPosition.y = landing ? 8.2 : (mobile ? 12 : 10.3);
-      nextTarget.copy(this.focus).addScaledVector(forward, landing ? 0.25 : 1.25);
-      nextTarget.y = 0.55;
+      // Standing further out and lower puts the piece in the foreground with the park
+      // behind it, so a move reads against the middle of the board rather than a bare tile.
+      nextPosition.copy(this.focus).addScaledVector(forward, -6.2).addScaledVector(outside, landing ? 13.5 : 19);
+      nextPosition.y = landing ? 8.4 : (mobile ? 12 : 10.6);
+      nextTarget.copy(this.focus).addScaledVector(forward, landing ? 0.25 : 1.25).addScaledVector(outside, landing ? -3 : -4.2);
+      nextTarget.y = 1.1;
     }
     this.camera.position.lerp(nextPosition, alpha);
     this.target.lerp(nextTarget, alpha);

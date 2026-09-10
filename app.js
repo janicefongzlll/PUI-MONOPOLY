@@ -146,6 +146,35 @@ function ensureBoard3D() {
   return board3DReady;
 }
 
+// The board opens on a full-window fly-through of the city, then shrinks back into the page
+// and hands the screen over to the game. Any move or drag during the flight ends it early.
+async function runBoardIntro() {
+  const view = await ensureBoard3D();
+  if (!view?.playIntro) return;
+  const stage = $("board-3d-stage"), shell = stage.parentElement, skip = $("board-skip-intro");
+  const settled = stage.getBoundingClientRect().height;
+  window.scrollTo({ top: 0 });
+  shell.style.minHeight = `${settled}px`;
+  document.body.classList.add("is-cinema"); stage.classList.add("is-cinema"); skip.hidden = false;
+  try { await view.playIntro(); }
+  catch (error) { console.warn("PUI Fortune opening fly-through failed.", error); }
+  finally {
+    skip.hidden = true;
+    const rect = shell.getBoundingClientRect();
+    stage.classList.add("is-settling");
+    requestAnimationFrame(() => {
+      stage.style.top = `${rect.top}px`; stage.style.left = `${rect.left}px`;
+      stage.style.right = `${window.innerWidth - rect.right}px`;
+      stage.style.bottom = `${window.innerHeight - rect.top - settled}px`;
+      stage.style.borderRadius = "22px";
+    });
+    await new Promise(done => setTimeout(done, 700));
+    stage.classList.remove("is-cinema", "is-settling"); stage.removeAttribute("style");
+    shell.style.minHeight = ""; document.body.classList.remove("is-cinema");
+    view.resize();
+  }
+}
+
 function showBoardSpace(position) {
   if (!state) return;
   $("board-3d-info-content").innerHTML = spaceTipHtml(position);
@@ -209,6 +238,7 @@ const icon = (name) => `<svg aria-hidden="true"><use href="#${name}"></use></svg
 function init() {
   $("board-view-button").addEventListener("click", () => board3D?.toggleOverview());
   $("board-3d-info-close").addEventListener("click", () => { $("board-3d-info").hidden = true; });
+  $("board-skip-intro").addEventListener("click", () => board3D?.skipIntro());
   $("board-space-buttons").innerHTML = spaces.map((space, pos) => `<button type="button" data-board-position="${pos}">${String(pos).padStart(2, "0")} · ${escapeHtml(space.name)}</button>`).join("");
   $("board-space-buttons").addEventListener("click", event => { const button = event.target.closest("[data-board-position]"); if (button) showBoardSpace(Number(button.dataset.boardPosition)); });
   renderNameFields(2);
@@ -288,6 +318,7 @@ async function startGame(event) {
   $("play-screen").classList.remove("hidden");
   renderAll();
   log(`${player().name} opens the city. Select the ${player().animal.name} to choose a move.`);
+  runBoardIntro();
   if (supabaseClient && authUser) await createCloudGame();
 }
 
@@ -572,6 +603,7 @@ async function loadCloudGame(gameId) {
   lastSyncedAt = new Date(); saveDirty = false; setSync("saved");
   renderAll();
   if (state.phase === "complete") { endGame(); return; }
+  runBoardIntro();
   if (state.pending?.kind === "movement") { resumeMovement(); toast(`${state.gameName} resumed — continuing your move.`); return; }
   if (state.pending?.kind === "turn-end") { completeTurn(state); return; }
   if (state.phase === "decision") { resumePending(); toast(`${state.gameName} resumed — finish your open decision.`); return; }

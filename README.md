@@ -50,7 +50,7 @@ The original `app.js` remains the only game engine. It owns the 36-space orderin
 - The existing Frog, Monkey, Wolf and Horse identities are represented by simple 3D figurines. Older saved animal identities remain supported.
 - The classic HTML board remains available automatically if WebGL or the 3D module cannot load. Reduced-motion preferences keep the step-by-step follow camera but use smaller hops and quicker, less sweeping camera settling.
 
-The scene uses shared geometry/materials, instanced city details, one shadow light, capped pixel density and no post-processing. Three.js r185 is bundled in `vendor/` with its MIT license, so the 3D layer makes no external asset requests.
+The scene uses shared geometry/materials, instanced city details, one shadow light, capped pixel density and no post-processing. Three.js r185 and its GLTFLoader addon are bundled in `vendor/` with their MIT license, so the 3D layer makes no external asset requests. The centre park is the MJM mill site modelled in Blender and shipped as `assets/models/palm_oil_mill.glb`, loaded as-is with its vehicle animations. Opening a game plays a seven second fly-through of the site at full screen, skippable, before the board settles into the page.
 
 ## Verification
 
