@@ -123,7 +123,7 @@ export class BoardCamera {
       // Standing further out and lower puts the piece in the foreground with the park
       // behind it, so a move reads against the middle of the board rather than a bare tile.
       nextPosition.copy(this.focus).addScaledVector(forward, -6.2).addScaledVector(outside, landing ? 13.5 : 19);
-      nextPosition.y = landing ? 8.4 : (mobile ? 12 : 10.6);
+      nextPosition.y = landing ? 10.2 : (mobile ? 15 : 13.4);
       nextTarget.copy(this.focus).addScaledVector(forward, landing ? 0.25 : 1.25).addScaledVector(outside, landing ? -3 : -4.2);
       nextTarget.y = 1.1;
     }
