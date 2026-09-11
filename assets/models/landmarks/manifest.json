@@ -1,0 +1,145 @@
+{
+  "source": "art/blender-landmarks/PUI-Fortune-Landmark-Atelier.blend",
+  "assets": [
+    {
+      "id": "taipei-101",
+      "name": "Taipei 101",
+      "triangles": 4844
+    },
+    {
+      "id": "petronas-twin-towers",
+      "name": "Petronas Twin Towers",
+      "triangles": 5500
+    },
+    {
+      "id": "marina-bay-sands",
+      "name": "Marina Bay Sands",
+      "triangles": 4688
+    },
+    {
+      "id": "burj-khalifa",
+      "name": "Burj Khalifa",
+      "triangles": 5500
+    },
+    {
+      "id": "eiffel-tower",
+      "name": "Eiffel Tower",
+      "triangles": 5500
+    },
+    {
+      "id": "sagrada-familia",
+      "name": "Sagrada Família",
+      "triangles": 5498
+    },
+    {
+      "id": "colosseum",
+      "name": "Colosseum",
+      "triangles": 8000
+    },
+    {
+      "id": "big-ben",
+      "name": "Big Ben",
+      "triangles": 5497
+    },
+    {
+      "id": "acropolis",
+      "name": "Acropolis",
+      "triangles": 4256
+    },
+    {
+      "id": "christ-the-redeemer",
+      "name": "Christ the Redeemer",
+      "triangles": 2688
+    },
+    {
+      "id": "machu-picchu",
+      "name": "Machu Picchu",
+      "triangles": 1732
+    },
+    {
+      "id": "taj-mahal",
+      "name": "Taj Mahal",
+      "triangles": 5500
+    },
+    {
+      "id": "angkor-wat",
+      "name": "Angkor Wat",
+      "triangles": 5500
+    },
+    {
+      "id": "sydney-opera-house",
+      "name": "Sydney Opera House",
+      "triangles": 5500
+    },
+    {
+      "id": "golden-gate-bridge",
+      "name": "Golden Gate Bridge",
+      "triangles": 5500
+    },
+    {
+      "id": "statue-of-liberty",
+      "name": "Statue of Liberty",
+      "triangles": 2532
+    },
+    {
+      "id": "moai-of-rapa-nui",
+      "name": "Moai of Rapa Nui",
+      "triangles": 1660
+    },
+    {
+      "id": "chichen-itza",
+      "name": "Chichén Itzá",
+      "triangles": 2008
+    },
+    {
+      "id": "pyramids-of-giza",
+      "name": "Pyramids of Giza",
+      "triangles": 1548
+    },
+    {
+      "id": "neuschwanstein-castle",
+      "name": "Neuschwanstein Castle",
+      "triangles": 3480
+    },
+    {
+      "id": "mount-fuji",
+      "name": "Mount Fuji",
+      "triangles": 1970
+    },
+    {
+      "id": "great-wall-of-china",
+      "name": "Great Wall of China",
+      "triangles": 5500
+    },
+    {
+      "id": "hagia-sophia",
+      "name": "Hagia Sophia",
+      "triangles": 5495
+    },
+    {
+      "id": "grand-canyon",
+      "name": "Grand Canyon",
+      "triangles": 2784
+    },
+    {
+      "id": "jail",
+      "name": "Jail",
+      "triangles": 2608
+    },
+    {
+      "id": "go-to-jail",
+      "name": "Go to Jail",
+      "triangles": 3016
+    },
+    {
+      "id": "transit-station-west",
+      "name": "Transit Station · West",
+      "triangles": 5498
+    },
+    {
+      "id": "transit-station-east",
+      "name": "Transit Station · East",
+      "triangles": 4644
+    }
+  ]
+}

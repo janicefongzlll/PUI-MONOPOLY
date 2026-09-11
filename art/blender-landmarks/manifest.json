@@ -1,0 +1,483 @@
+{
+  "version": 1,
+  "status": "Blender review only; game not integrated",
+  "source": "Create better all 3d landmark jail and train station in blender first",
+  "assets": [
+    {
+      "id": "taipei-101",
+      "name": "Taipei 101",
+      "features": [
+        "Eight jade pagoda tiers",
+        "Gold corner medallions",
+        "Stepped crown and mast"
+      ],
+      "file": "glb/taipei-101.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        2.42
+      ],
+      "triangles": 9552,
+      "materials": 9
+    },
+    {
+      "id": "petronas-twin-towers",
+      "name": "Petronas Twin Towers",
+      "features": [
+        "Paired silver scalloped towers",
+        "Double-deck skybridge",
+        "Tiered needle crowns"
+      ],
+      "file": "glb/petronas-twin-towers.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        2.18
+      ],
+      "triangles": 14900,
+      "materials": 9
+    },
+    {
+      "id": "marina-bay-sands",
+      "name": "Marina Bay Sands",
+      "features": [
+        "Three split hotel towers",
+        "Curved boat-shaped SkyPark",
+        "Turquoise infinity pool and roof gardens"
+      ],
+      "file": "glb/marina-bay-sands.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.36
+      ],
+      "triangles": 9560,
+      "materials": 9
+    },
+    {
+      "id": "burj-khalifa",
+      "name": "Burj Khalifa",
+      "features": [
+        "Asymmetric bundled setbacks",
+        "Blue-silver vertical ribs",
+        "Very long tapered spire"
+      ],
+      "file": "glb/burj-khalifa.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        2.58
+      ],
+      "triangles": 20240,
+      "materials": 7
+    },
+    {
+      "id": "eiffel-tower",
+      "name": "Eiffel Tower",
+      "features": [
+        "Four open splayed lattice legs",
+        "Cross-braced ironwork",
+        "Two decks and tapering mast"
+      ],
+      "file": "glb/eiffel-tower.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        2.25
+      ],
+      "triangles": 21840,
+      "materials": 7
+    },
+    {
+      "id": "sagrada-familia",
+      "name": "Sagrada Família",
+      "features": [
+        "Perforated clustered spires",
+        "Nativity portal and rose window",
+        "Colourful finials and central cross"
+      ],
+      "file": "glb/sagrada-familia.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        2.04
+      ],
+      "triangles": 15392,
+      "materials": 9
+    },
+    {
+      "id": "colosseum",
+      "name": "Colosseum",
+      "features": [
+        "Open oval arena",
+        "Three storeys of real arcades",
+        "Broken upper rim"
+      ],
+      "file": "glb/colosseum.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        0.762
+      ],
+      "triangles": 44060,
+      "materials": 4
+    },
+    {
+      "id": "big-ben",
+      "name": "Big Ben",
+      "features": [
+        "Four clock faces",
+        "Gothic pinnacles and slate roof",
+        "Warm sandstone buttresses"
+      ],
+      "file": "glb/big-ben.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        2.12
+      ],
+      "triangles": 19224,
+      "materials": 10
+    },
+    {
+      "id": "acropolis",
+      "name": "Acropolis",
+      "features": [
+        "Rocky sacred plateau",
+        "Open Doric colonnade",
+        "Sculpted pediment and terracotta roof"
+      ],
+      "file": "glb/acropolis.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.019
+      ],
+      "triangles": 9252,
+      "materials": 5
+    },
+    {
+      "id": "christ-the-redeemer",
+      "name": "Christ the Redeemer",
+      "features": [
+        "Outstretched robe sleeves",
+        "Sculpted head and draped torso",
+        "Green mountain and viewing terrace"
+      ],
+      "file": "glb/christ-the-redeemer.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.528
+      ],
+      "triangles": 5010,
+      "materials": 7
+    },
+    {
+      "id": "machu-picchu",
+      "name": "Machu Picchu",
+      "features": [
+        "Huayna Picchu peak",
+        "Alternating agricultural terraces",
+        "Open stone houses and zigzag paths"
+      ],
+      "file": "glb/machu-picchu.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.18
+      ],
+      "triangles": 4268,
+      "materials": 7
+    },
+    {
+      "id": "taj-mahal",
+      "name": "Taj Mahal",
+      "features": [
+        "White onion dome and golden finial",
+        "Four independent minarets",
+        "Arched entrance and reflecting garden"
+      ],
+      "file": "glb/taj-mahal.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.145
+      ],
+      "triangles": 10760,
+      "materials": 7
+    },
+    {
+      "id": "angkor-wat",
+      "name": "Angkor Wat",
+      "features": [
+        "Five lotus towers",
+        "Stepped stone galleries",
+        "Moat and processional causeway"
+      ],
+      "file": "glb/angkor-wat.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.135
+      ],
+      "triangles": 13868,
+      "materials": 8
+    },
+    {
+      "id": "sydney-opera-house",
+      "name": "Sydney Opera House",
+      "features": [
+        "Curved overlapping shell vaults",
+        "Blue glass beneath white sails",
+        "Harbour promenade"
+      ],
+      "file": "glb/sydney-opera-house.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.169
+      ],
+      "triangles": 51440,
+      "materials": 5
+    },
+    {
+      "id": "golden-gate-bridge",
+      "name": "Golden Gate Bridge",
+      "features": [
+        "International Orange portal towers",
+        "Sweeping suspension cables",
+        "Road deck over blue bay"
+      ],
+      "file": "glb/golden-gate-bridge.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.28
+      ],
+      "triangles": 15800,
+      "materials": 7
+    },
+    {
+      "id": "statue-of-liberty",
+      "name": "Statue of Liberty",
+      "features": [
+        "Raised torch and golden flame",
+        "Seven-point crown and tablet",
+        "Copper-green robes on stone pedestal"
+      ],
+      "file": "glb/statue-of-liberty.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.755
+      ],
+      "triangles": 5424,
+      "materials": 8
+    },
+    {
+      "id": "moai-of-rapa-nui",
+      "name": "Moai of Rapa Nui",
+      "features": [
+        "Three elongated carved faces",
+        "Heavy brows and long noses",
+        "Red pukao and volcanic grass base"
+      ],
+      "file": "glb/moai-of-rapa-nui.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.239
+      ],
+      "triangles": 3676,
+      "materials": 7
+    },
+    {
+      "id": "chichen-itza",
+      "name": "Chichén Itzá",
+      "features": [
+        "Nine stepped pyramid terraces",
+        "Broad central staircase",
+        "Summit temple and serpent balustrades"
+      ],
+      "file": "glb/chichen-itza.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.013
+      ],
+      "triangles": 4528,
+      "materials": 6
+    },
+    {
+      "id": "pyramids-of-giza",
+      "name": "Pyramids of Giza",
+      "features": [
+        "Three unequal pyramids",
+        "Stone course lines and pale caps",
+        "Miniature reclining Sphinx"
+      ],
+      "file": "glb/pyramids-of-giza.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        0.94
+      ],
+      "triangles": 3548,
+      "materials": 4
+    },
+    {
+      "id": "neuschwanstein-castle",
+      "name": "Neuschwanstein Castle",
+      "features": [
+        "Ivory palace and blue conical turrets",
+        "Terracotta gatehouse",
+        "Steep green crag and courtyard"
+      ],
+      "file": "glb/neuschwanstein-castle.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.75
+      ],
+      "triangles": 6992,
+      "materials": 11
+    },
+    {
+      "id": "mount-fuji",
+      "name": "Mount Fuji",
+      "features": [
+        "Broad volcanic cone",
+        "Irregular snow line and crater",
+        "Lake, cherry blossoms and red torii"
+      ],
+      "file": "glb/mount-fuji.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.0
+      ],
+      "triangles": 3508,
+      "materials": 9
+    },
+    {
+      "id": "great-wall-of-china",
+      "name": "Great Wall of China",
+      "features": [
+        "Winding crenellated ramparts",
+        "Three roofed watchtowers",
+        "Rolling green ridgeline"
+      ],
+      "file": "glb/great-wall-of-china.glb",
+      "dimensions_blender_xyz": [
+        1.639,
+        0.806,
+        1.368
+      ],
+      "triangles": 14588,
+      "materials": 7
+    },
+    {
+      "id": "hagia-sophia",
+      "name": "Hagia Sophia",
+      "features": [
+        "Broad lead-grey central dome",
+        "Cascading half-domes",
+        "Four slender minarets and brick galleries"
+      ],
+      "file": "glb/hagia-sophia.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.285
+      ],
+      "triangles": 10128,
+      "materials": 7
+    },
+    {
+      "id": "grand-canyon",
+      "name": "Grand Canyon",
+      "features": [
+        "Layered red sandstone mesas",
+        "Deep winding gorge",
+        "Turquoise river and sparse desert shrubs"
+      ],
+      "file": "glb/grand-canyon.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        0.89
+      ],
+      "triangles": 6072,
+      "materials": 8
+    },
+    {
+      "id": "jail",
+      "name": "Jail",
+      "features": [
+        "Open barred entrance",
+        "Corner watchtowers and warm lamps",
+        "Stone walls with blue roofs"
+      ],
+      "file": "glb/jail.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.358
+      ],
+      "triangles": 5972,
+      "materials": 12
+    },
+    {
+      "id": "go-to-jail",
+      "name": "Go to Jail",
+      "features": [
+        "Open barred entrance",
+        "Corner watchtowers and warm lamps",
+        "Civic guardhouse and police beacon"
+      ],
+      "file": "glb/go-to-jail.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.359
+      ],
+      "triangles": 6656,
+      "materials": 13
+    },
+    {
+      "id": "transit-station-west",
+      "name": "Transit Station · West",
+      "features": [
+        "Visible rails and miniature train",
+        "Brick clock hall",
+        "Teal canopy and platform lamps"
+      ],
+      "file": "glb/transit-station-west.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        1.009
+      ],
+      "triangles": 14120,
+      "materials": 12
+    },
+    {
+      "id": "transit-station-east",
+      "name": "Transit Station · East",
+      "features": [
+        "Visible rails and miniature train",
+        "Arched glass concourse",
+        "Teal canopy and platform lamps"
+      ],
+      "file": "glb/transit-station-east.glb",
+      "dimensions_blender_xyz": [
+        1.474,
+        0.806,
+        0.87
+      ],
+      "triangles": 8836,
+      "materials": 11
+    }
+  ]
+}

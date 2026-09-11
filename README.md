@@ -43,7 +43,8 @@ The original `app.js` remains the only game engine. It owns the 36-space orderin
 
 - `components/board3d/CityBoard3D.mjs` reads the current game state and composes tiles, tokens, lightweight landmarks, lighting, and landing effects.
 - `boardLayout.mjs` makes the board physically square while keeping the engine's ring ordering and corner indices `[0, 10, 18, 28]`. The two shorter runs have slightly wider spaces; saves written under the earlier 10x10 (`board: 1`) and 13x7 (`board: 2`) numberings are remapped on load.
-- Spaces are twice as deep as they are wide, the way a real board's are, and carry a square name plate. A bought landmark is washed in its owner's colour on both the 3D and classic boards; ownership itself still lives only in `properties[].owner`.
+- Spaces are twice as deep as they are wide, the way a real board's are, and carry a square name plate. Bought tiles carry their owner's colour; Blender landmarks retain their architectural palettes. Ownership itself still lives only in `properties[].owner`.
+- `BlenderLandmarks.mjs` loads 28 local Blender miniatures: all 24 properties, Jail, Go to Jail and both stations. Exact names and existing indices determine placement; each asset fits its current tile footprint. Shared material batches keep these models to 30 draw calls, with an individual procedural fallback if an asset fails to load. Upgrade fairy lights follow each imported model's dimensions, and the existing always-visible token pass remains unchanged. Editable originals, previews and export instructions are in `art/blender-landmarks/README.md`; lightweight game exports are in `assets/models/landmarks/`.
 - `BoardCamera.mjs` owns FOLLOW, LANDING, OVERVIEW, IDLE and FREE, including look-ahead and damped corner rotation. Drag to orbit and wheel or pinch to zoom put it in FREE; View Board / Return to Player and the start of any move take it back. A drag never counts as a tap on the piece or tile underneath. All of this affects the camera only.
 - `animation/tokenMovement.mjs` performs hop arcs and landing bounces. The engine commits position only after each hop completes, then calls the existing destination rules after the final landing.
 - Movement intent, the next unfinished hop and the Start reward flag are saved as a plain `state.pending` movement record. A saved movement resumes without duplicate cash rewards. Turn handoffs and completed games are also explicit saved states.
@@ -55,5 +56,7 @@ The scene uses shared geometry/materials, instanced city details, one shadow lig
 ## Verification
 
 Run `node tests/game-regression.cjs` to check movement, Start awards, every Chance effect, purchase/rent/challenges, taxes, Jail, Transit, upgrades, trading, scoring and save/load. These tests use an isolated state and a mocked Supabase transport; they never write to a real account.
+
+Run `node tests/blender-landmarks.mjs` to parse all 28 shipped models and verify exact tile mapping, four-edge placement, footprint/height bounds, batched picking, geometry budgets, failure fallback and disposal without mutating gameplay data.
 
 Architecture and browser-renderer reference: [Three.js WebGLRenderer documentation](https://threejs.org/docs/pages/WebGLRenderer.html).

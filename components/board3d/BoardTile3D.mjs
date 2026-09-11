@@ -88,6 +88,18 @@ export class BoardTile3D {
     this.isUpgraded = upgraded;
   }
   playUpgradeGlow() { this.upgradeGlowTime = 1.9; this.fairyLights.visible = true; }
+  setLandmarkDimensions(dimensions) {
+    // Keep the existing fairy-light animation, but distribute it over the imported building.
+    const points = this.fairyLights.geometry.attributes.position;
+    for (let i = 0; i < points.count; i++) {
+      const ringIndex = i % 12, layer = Math.floor(i / 12), angle = ringIndex * Math.PI * 2 / 12 + layer * .19;
+      const taper = [1, .78, .55][layer];
+      points.setXYZ(i, Math.cos(angle) * Math.max(.32, dimensions.x * .5) * taper,
+        dimensions.y * (.13 + layer * .27 + (ringIndex % 4) * .055),
+        Math.sin(angle) * Math.max(.24, dimensions.z * .55) * taper);
+    }
+    points.needsUpdate = true; this.fairyLights.geometry.computeBoundingSphere();
+  }
   update(delta) {
     if (!this.isUpgraded) return;
     this.upgradePulse += delta;

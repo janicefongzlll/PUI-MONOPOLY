@@ -4,6 +4,7 @@ import { BoardResources, StaticCityBatch } from './resources.mjs';
 import { BoardTile3D, createLabelAtlas } from './BoardTile3D.mjs';
 import { PlayerToken3D, TOKEN_LAYER } from './PlayerToken3D.mjs';
 import { addPropertyLandmark } from './PropertyLandmark.mjs';
+import { BlenderLandmarks, landmarkAssetSpecs } from './BlenderLandmarks.mjs';
 import { BoardCamera, CAMERA_MODES } from './BoardCamera.mjs';
 import { LandingEffect } from './LandingEffect.mjs';
 import { createBoardEnvironment } from './BoardEnvironment.mjs';
@@ -54,11 +55,31 @@ export class CityBoard3D {
     const batch = new StaticCityBatch(this.resources);
     this.environment = createBoardEnvironment(this.scene, this.resources, batch, this.spans);
     this.labelMaterial = createLabelAtlas(spaces, this.resources);
+    const blenderTiles = new Set(landmarkAssetSpecs(spaces).map(spec => spec.index));
     this.tiles = spaces.map((space, index) => {
       const tile = new BoardTile3D(space, this.layout[index], this.resources, this.labelMaterial);
-      this.scene.add(tile.group); addPropertyLandmark(batch, this.layout[index], space); return tile;
+      this.scene.add(tile.group);
+      if (!blenderTiles.has(index)) addPropertyLandmark(batch, this.layout[index], space);
+      return tile;
     });
     batch.build(this.scene);
+    this.landmarkStatus = document.createElement('span'); this.landmarkStatus.className = 'board-landmark-status';
+    this.landmarkStatus.setAttribute('role', 'status'); this.landmarkStatus.textContent = 'Loading landmarks…'; host.appendChild(this.landmarkStatus);
+    this.landmarks = new BlenderLandmarks({ scene: this.scene, spaces, layout: this.layout,
+      onProgress: (loaded, total) => { this.landmarkStatus.textContent = `Loading landmarks… ${loaded}/${total}`; },
+      onModel: (index, dimensions) => this.tiles[index].setLandmarkDimensions(dimensions),
+      onMissing: index => {
+        // A failed download should never stop play. Only failed assets use the original art.
+        const fallback = new StaticCityBatch(this.resources);
+        addPropertyLandmark(fallback, this.layout[index], spaces[index]); fallback.build(this.scene);
+      },
+      onReady: result => {
+        host.dataset.landmarks = String(result.loaded);
+        this.landmarkStatus.hidden = !result.missing.length;
+        if (result.missing.length) this.landmarkStatus.textContent = 'Some models could not load. Refresh to retry.';
+        this.renderer.compile(this.scene, this.camera); this.renderer.shadowMap.needsUpdate = true;
+      }
+    });
     // The mill site streams in after the first frames, so the static shadow map must be redrawn once it lands.
     this.siteReady = false; this.intro = null;
     this.scene.addEventListener('site-ready', () => {
@@ -261,8 +282,10 @@ export class CityBoard3D {
       while (object && object.userData.playerId === undefined) object = object.parent;
       if (object) { this.onToken?.(object.userData.playerId); return; }
     }
-    const tileHits = this.raycaster.intersectObjects(this.tiles.map(tile => tile.group), true);
+    const tileHits = this.raycaster.intersectObjects([...this.tiles.map(tile => tile.group), this.landmarks.group], true);
     if (tileHits.length) {
+      const landmarkIndex = this.landmarks.tileFromHit(tileHits[0]);
+      if (Number.isInteger(landmarkIndex)) { this.onTile?.(landmarkIndex); return; }
       let object = tileHits[0].object;
       while (object && object.userData.tileIndex === undefined) object = object.parent;
       if (object) this.onTile?.(object.userData.tileIndex);
@@ -378,6 +401,7 @@ export class CityBoard3D {
     this.endIntro(false);
     this.renderer.setAnimationLoop(null); this.resizeObserver.disconnect();
     this.tiles.forEach(tile => tile.dispose()); this.environment.dispose(); this.landing.dispose(); this.labelMaterial.dispose();
+    this.landmarks.dispose(); this.landmarkStatus.remove();
     this.resources.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.session = null;
   }
 }
