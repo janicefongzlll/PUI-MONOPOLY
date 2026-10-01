@@ -219,6 +219,11 @@ export class CityBoard3D {
     if (this.cameraControl.mode === CAMERA_MODES.OVERVIEW) this.cameraControl.returnToPlayer(); else this.cameraControl.overview();
   }
 
+  highlightPurchase(position) {
+    const layout = this.layout[wrapIndex(position)];
+    if (layout) this.landing.trigger({ x: layout.x, z: layout.z }, false, layout);
+  }
+
   sparkleUpgrade(position) {
     const layout = this.layout[wrapIndex(position)];
     if (layout) { this.tiles[wrapIndex(position)]?.playUpgradeGlow(); this.landing.triggerUpgrade(layout); }

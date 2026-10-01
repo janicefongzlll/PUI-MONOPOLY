@@ -116,8 +116,17 @@ const showCashEffect = (amount, label) => window.PUIPresentation?.cash(amount, l
 const showJailEffect = () => window.PUIPresentation?.jail();
 const showTransitEffect = () => window.PUIPresentation?.transit();
 const sparkleUpgrade = position => { ensureBoard3D().then(view => view?.sparkleUpgrade?.(position)); };
+const showPurchaseEffect = (p, prop) => {
+  // A detached receipt of the completed transaction; presentation never settles money.
+  board3D?.highlightPurchase?.(prop.position);
+  if (window.PUIPresentation?.purchase) window.PUIPresentation.purchase({
+    name: prop.name, team: p.name, price: prop.price, balance: p.cash, color: p.color
+  });
+  else showCashEffect(-prop.price, "LANDMARK ACQUIRED");
+};
 
 function cancelBoardAnimation() {
+  window.PUIPresentation?.cancelPurchase?.();
   movementController?.abort(); movementController = null; movementPromise = null;
   clearTimeout(turnTimer); turnTimer = null;
   board3D?.cancel();
@@ -948,11 +957,12 @@ function winChallenge(p, prop) {
 }
 
 function showPurchaseDecision(p, prop) {
+  window.PUILandmarkAcquisition?.preload(prop.name);
   state.phase = "decision"; setPending({ kind: "purchase", player: p.id, pos: prop.position }); renderTurn();
   const affordable = p.cash >= prop.price;
   const actions = [];
   // No buying into debt: without the full price the only move is to walk away.
-  if (affordable) actions.push({ label: `Buy for ${money(prop.price)}`, primary: true, action: () => { adjustCash(p, -prop.price); showCashEffect(-prop.price, "LANDMARK ACQUIRED"); prop.owner = p.id; log(`${p.name} bought ${prop.name} for ${money(prop.price)}.`); toast(`${prop.name} is now yours.`); closeDecision(); endTurn(); } });
+  if (affordable) actions.push({ label: `Buy for ${money(prop.price)}`, primary: true, action: () => { adjustCash(p, -prop.price); prop.owner = p.id; log(`${p.name} bought ${prop.name} for ${money(prop.price)}.`); toast(`${prop.name} is now yours.`); closeDecision(); endTurn(); showPurchaseEffect(p, prop); } });
   actions.push({ label: affordable ? "Pass on this property" : "Leave it — not enough cash", primary: !affordable, action: () => { log(`${p.name} left ${prop.name} open for another group.`); closeDecision(); endTurn(); } });
   const timeout = { timeLimit: DECISION_SECONDS, timeoutNote: "the block stays open", onTimeout: () => { log(`${p.name} ran out of time and left ${prop.name} open for another group.`); toast(`Time up — ${prop.name} not bought.`); closeDecision(); endTurn(); } };
   showDecision({ ...timeout, icon: "i-build", kicker: "Open city block", title: `${prop.name} is available`, copy: affordable ? `Buy this address to add it to ${p.name}’s city portfolio. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.` : `${p.name} holds ${money(p.cash)} and cannot cover the ${money(prop.price)} price. The block stays open.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions });

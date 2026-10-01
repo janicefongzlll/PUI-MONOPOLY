@@ -382,6 +382,55 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 .decision-timer::before { content: "⏱"; font-size: 15px; }
 .decision-timer.is-urgent { border-color: #d98b7a; background: #ffeee9; color: #8a3320; }
 
+/* Completed purchase receipt — isolated from every game decision dialog. */
+.acquisition-dialog { width: min(450px, calc(100vw - 28px)); max-height: calc(100dvh - 28px); padding: 0; overflow: auto; border: 1px solid #e4dbc5; border-radius: 26px; background: #faf9f4; color: #213b33; box-shadow: 0 28px 90px #08241e66, inset 0 0 0 5px #fff8; }
+.acquisition-dialog::backdrop { background: #10272170; backdrop-filter: blur(3px); animation: acquisition-veil-in 220ms ease-out both; }
+.acquisition-dialog[open] { animation: acquisition-enter 420ms cubic-bezier(.18,.8,.25,1) both; }
+.acquisition-card { padding: 24px 28px 22px; text-align: center; }
+.acquisition-kicker { margin: 0 0 16px; color: #65764d; font: 800 11px Nunito, sans-serif; letter-spacing: .22em; }
+.acquisition-art { position: relative; width: min(240px, 55vw); aspect-ratio: 1; margin: 0 auto 18px; overflow: hidden; border-radius: 22px; background: #233d42; border: 1px solid #b8c6bc; box-shadow: 0 12px 24px #1c37351c; }
+.acquisition-art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.acquisition-art::after { content: ''; position: absolute; inset: -30%; background: linear-gradient(110deg, transparent 35%, #fff3 49%, transparent 61%); transform: translateX(-100%); pointer-events: none; }
+.acquisition-fallback { display: none; place-items: center; height: 100%; font-size: 72px; color: #e0c482; }
+.acquisition-dialog.no-art img { display: none; }.acquisition-dialog.no-art .acquisition-fallback { display: grid; }
+.acquisition-glint { position: absolute; top: 16%; right: 18%; color: #fff1c4; font-size: 27px; opacity: 0; }
+.acquisition-dialog h2 { margin: 0; font: 800 clamp(24px, 4.5vw, 32px)/1.08 'Baloo 2', Nunito, sans-serif; letter-spacing: -.025em; text-wrap: balance; }
+.acquisition-team { margin: 10px 0 18px; font-size: 13px; color: #64736c; overflow-wrap: anywhere; }
+.acquisition-team strong { display: inline-block; margin-left: 4px; padding: 4px 10px; border-radius: 20px; background: #eaf0e8; color: #29463b; font-weight: 800; }
+.acquisition-team strong::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--acquisition-team, #618348); }
+.acquisition-receipt { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #dde3d7; border-radius: 14px; padding: 12px 8px; background: #f0f3ec; }
+.acquisition-receipt > div + div { border-left: 1px solid #d7dfd1; }
+.acquisition-receipt span { display: block; margin-bottom: 4px; color: #607065; font-size: 11px; font-weight: 700; }
+.acquisition-receipt strong { display: block; font: 500 24px/1.2 'DM Mono', monospace; font-variant-numeric: tabular-nums; }
+#acquisition-price { color: #9a5d3b; }
+.acquisition-summary { margin: 12px 0 16px; color: #6b776e; font-size: 11px; }
+.acquisition-continue { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid #244834; border-radius: 12px; background: #325941; color: white; box-shadow: 0 3px 8px #183c2526; transition: transform 130ms ease, background 130ms ease; }
+.acquisition-continue:hover { background: #244834; transform: translateY(-1px); box-shadow: 0 3px 8px #183c2526; }
+.acquisition-continue:active { transform: translateY(1px) scale(.99); }.acquisition-continue:focus-visible { outline: 3px solid #bfab70; outline-offset: 3px; }
+.acquisition-dialog[open] .acquisition-art { animation: acquisition-reveal 500ms 80ms both cubic-bezier(.2,.8,.25,1); }
+.acquisition-dialog[open] .acquisition-art::after { animation: acquisition-sweep 750ms 350ms both ease; }
+.acquisition-dialog[open] .acquisition-glint { animation: acquisition-glint 650ms 650ms both ease; }
+.acquisition-dialog[open] h2 { animation: acquisition-reveal 350ms 160ms both ease-out; }
+.acquisition-dialog[open] .acquisition-team { animation: acquisition-reveal 350ms 240ms both ease-out; }
+.acquisition-dialog[open] .acquisition-receipt { animation: acquisition-reveal 400ms 320ms both ease-out; }
+.acquisition-dialog[open] #acquisition-price { animation: acquisition-price 500ms 400ms both ease-out; }
+.acquisition-dialog[open] .acquisition-summary { animation: acquisition-reveal 350ms 400ms both ease-out; }
+.acquisition-dialog[open].is-closing { animation: acquisition-exit 200ms ease-in both; pointer-events: none; }
+.acquisition-dialog.is-closing::backdrop { animation: acquisition-veil-out 200ms ease-in both; }
+@keyframes acquisition-enter { from { opacity: 0; transform: translateY(16px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes acquisition-reveal { from { opacity: 0; transform: translateY(9px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes acquisition-price { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+@keyframes acquisition-sweep { to { transform: translateX(100%); } }
+@keyframes acquisition-glint { 0%,100% { opacity: 0; transform: scale(.5) rotate(-20deg); } 40% { opacity: .85; transform: scale(1) rotate(0); } }
+@keyframes acquisition-exit { to { opacity: 0; transform: translateY(5px) scale(.97); } }
+@keyframes acquisition-veil-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes acquisition-veil-out { from { opacity: 1; } to { opacity: 0; } }
+@media (max-height: 730px) { .acquisition-card { padding: 18px 22px; }.acquisition-art { width: min(185px, 45vw); margin-bottom: 12px; }.acquisition-kicker { margin-bottom: 12px; } }
+@media (prefers-reduced-motion: reduce) {
+  .acquisition-dialog[open], .acquisition-dialog[open] *, .acquisition-dialog[open] .acquisition-art::after { animation: none !important; transition: none !important; }
+  .acquisition-dialog::backdrop { animation: none; backdrop-filter: none; }
+}
+
 /* Major-event presentation layer -------------------------------------------------- */
 .event-fx { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; overflow: hidden; pointer-events: none; isolation: isolate; }
 .event-fx-veil { position: absolute; inset: 0; background: rgba(10, 28, 30, .1); opacity: 0; transition: opacity .2s ease; }

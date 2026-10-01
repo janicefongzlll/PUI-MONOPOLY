@@ -9,6 +9,12 @@
   const money = value => `$${Math.abs(value).toLocaleString()}`;
   const run = event => {
     active = true; clearTimeout(timer);
+    if (event.kind === 'purchase') {
+      window.PUILandmarkAcquisition.show(event.receipt, () => {
+        active = false; if (queue.length) run(queue.shift());
+      });
+      return;
+    }
     root.hidden = false; root.className = `event-fx is-${event.kind}${event.major ? ' is-major' : ''}`;
     kicker.textContent = event.kicker || '';
     amount.textContent = event.amount === undefined ? '' : `${event.amount < 0 ? '-' : '+'}${money(event.amount)}`;
@@ -22,6 +28,14 @@
   };
   const show = event => { if (active) queue.push(event); else run(event); };
   window.PUIPresentation = {
+    purchase(receipt) {
+      if (window.PUILandmarkAcquisition) show({ kind: 'purchase', receipt: { ...receipt } });
+      else this.cash(-receipt.price, 'LANDMARK ACQUIRED');
+    },
+    cancelPurchase() {
+      for (let i = queue.length - 1; i >= 0; i--) if (queue[i].kind === 'purchase') queue.splice(i, 1);
+      window.PUILandmarkAcquisition?.cancel();
+    },
     cash(value, labelText) {
       if (!value) return;
       show({ kind: value > 0 ? 'profit' : 'loss', amount: value, label: labelText || (value > 0 ? 'PROFIT' : 'LOSS'), major: Math.abs(value) >= 100, duration: 1800 });

@@ -216,6 +216,24 @@
     </section>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <dialog class="acquisition-dialog" id="acquisition-dialog" aria-labelledby="acquisition-name" aria-describedby="acquisition-summary">
+      <div class="acquisition-card">
+        <p class="acquisition-kicker">LANDMARK ACQUIRED</p>
+        <div class="acquisition-art" aria-hidden="true">
+          <img id="acquisition-image" alt="" width="600" height="600" />
+          <span class="acquisition-fallback">✦</span><span class="acquisition-glint">✦</span>
+        </div>
+        <h2 id="acquisition-name"></h2>
+        <p class="acquisition-team">Purchased by <strong id="acquisition-team"></strong></p>
+        <div class="acquisition-receipt">
+          <div><span>Purchase price</span><strong id="acquisition-price"></strong></div>
+          <div id="acquisition-balance-detail" role="group"><span>Team balance</span><strong id="acquisition-balance" aria-hidden="true"></strong></div>
+        </div>
+        <p class="acquisition-summary" id="acquisition-summary">Added to your property portfolio</p>
+        <button class="primary-button acquisition-continue" id="acquisition-continue" type="button" autofocus>Continue <span aria-hidden="true">→</span></button>
+      </div>
+    </dialog>
+    <script src="purchase-effects.js"></script>
     <script src="presentation-effects.js"></script>
     <script src="app.js"></script>
       <div class="space-tip" id="space-tip" role="tooltip" hidden></div>

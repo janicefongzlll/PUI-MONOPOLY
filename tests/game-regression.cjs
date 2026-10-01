@@ -93,6 +93,22 @@ test('purchase/pass, own landmark and both taxes keep existing rules',()=>{
   const pass=engine(); pass.run('showPurchaseDecision(player(),properties[0]);ui.actions[1].action();');
   assert.equal(pass.run('properties[0].owner'),null);
 });
+test('purchase receipt uses the settled result without changing money or turns',()=>{
+  const e=engine();
+  e.run(`receipts=[]; window.PUIPresentation={purchase:receipt=>receipts.push(receipt)};
+    showPurchaseDecision(player(), properties[0]); ui.actions[0].action();`);
+  assert.deepEqual(e.plain('receipts.map(r=>[r.name,r.team,r.price,r.balance])'),[['Taipei 101','Group 1',80,920]]);
+  assert.equal(e.run('player().turns'),1);
+  assert.equal(e.run('properties[0].owner'),0);
+  e.run('player().cash=500; player().name="Changed";');
+  assert.equal(e.run('receipts[0].balance'),920);
+  assert.equal(e.run('receipts[0].team'),'Group 1');
+  const pass=engine();
+  pass.run(`receipts=[]; window.PUIPresentation={purchase:r=>receipts.push(r)};
+    showPurchaseDecision(player(), properties[0]); ui.actions[1].action();`);
+  assert.equal(pass.run('receipts.length'),0);
+});
+
 test('rent and challenge transfer correct amounts including upgraded rent',()=>{
   for(const [upgraded,multiplier,amount] of [[false,1,10],[false,2,20],[true,1,20],[true,2,40]]) {
     const e=engine(); e.run(`properties[0].owner=1;properties[0].building=${upgraded};payRent(player(),properties[0],${multiplier},${multiplier===2});`);
