@@ -22,6 +22,35 @@ const properties = [
   ["Hagia Sophia", 520, 54, "#dc9c4d"], ["Grand Canyon", 560, 58, "#ec6671"]
 ].map(([name, price, rent, color], art) => ({ position: 0, name, price, rent, color, art, owner: null, building: false }));
 
+// Quiz metadata only. It never participates in pricing, rent, ownership or scoring.
+const landmarkCountries = Object.freeze({
+  "Taipei 101": { name: "Taiwan", code: "TW" },
+  "Petronas Twin Towers": { name: "Malaysia", code: "MY" },
+  "Marina Bay Sands": { name: "Singapore", code: "SG" },
+  "Burj Khalifa": { name: "United Arab Emirates", code: "AE" },
+  "Eiffel Tower": { name: "France", code: "FR" },
+  "Sagrada Família": { name: "Spain", code: "ES" },
+  "Colosseum": { name: "Italy", code: "IT" },
+  "Big Ben": { name: "United Kingdom", code: "GB" },
+  "Acropolis": { name: "Greece", code: "GR" },
+  "Christ the Redeemer": { name: "Brazil", code: "BR" },
+  "Machu Picchu": { name: "Peru", code: "PE" },
+  "Taj Mahal": { name: "India", code: "IN" },
+  "Angkor Wat": { name: "Cambodia", code: "KH" },
+  "Sydney Opera House": { name: "Australia", code: "AU" },
+  "Golden Gate Bridge": { name: "United States", code: "US" },
+  "Statue of Liberty": { name: "United States", code: "US" },
+  "Moai of Rapa Nui": { name: "Chile", code: "CL" },
+  "Chichén Itzá": { name: "Mexico", code: "MX" },
+  "Pyramids of Giza": { name: "Egypt", code: "EG" },
+  "Neuschwanstein Castle": { name: "Germany", code: "DE" },
+  "Mount Fuji": { name: "Japan", code: "JP" },
+  "Great Wall of China": { name: "China", code: "CN" },
+  "Hagia Sophia": { name: "Türkiye", code: "TR" },
+  "Grand Canyon": { name: "United States", code: "US" }
+});
+const countryFlag = code => [...code.toUpperCase()].map(letter => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("");
+
 const cornerSpaces = [
   { type: "start", name: "Start", label: "Collect $200", art: 24 },
   { type: "jail", name: "Jail", label: "Just Visiting", art: 29 },
@@ -126,6 +155,7 @@ const showPurchaseEffect = (p, prop) => {
 };
 
 function cancelBoardAnimation() {
+  window.PUICountryQuiz?.cancel?.();
   window.PUIPresentation?.cancelPurchase?.();
   movementController?.abort(); movementController = null; movementPromise = null;
   clearTimeout(turnTimer); turnTimer = null;
@@ -336,7 +366,7 @@ function resetGame() {
   resetSync();
   exitGameFullscreen();
   state = null;
-  ["decision-dialog", "rules-dialog", "trade-dialog", "log-dialog", "end-dialog", "results-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
+  ["decision-dialog", "country-quiz-dialog", "rules-dialog", "trade-dialog", "log-dialog", "end-dialog", "results-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
   $("play-screen").classList.add("hidden");
   if (supabaseClient && authUser) showLobby(); else showSetup();
 }
@@ -962,10 +992,34 @@ function showPurchaseDecision(p, prop) {
   const affordable = p.cash >= prop.price;
   const actions = [];
   // No buying into debt: without the full price the only move is to walk away.
-  if (affordable) actions.push({ label: `Buy for ${money(prop.price)}`, primary: true, action: () => { adjustCash(p, -prop.price); prop.owner = p.id; log(`${p.name} bought ${prop.name} for ${money(prop.price)}.`); toast(`${prop.name} is now yours.`); closeDecision(); endTurn(); showPurchaseEffect(p, prop); } });
+  if (affordable) actions.push({ label: `Purchase Property · ${money(prop.price)}`, primary: true, action: () => { closeDecision(); showCountryQuiz(p, prop); } });
   actions.push({ label: affordable ? "Pass on this property" : "Leave it — not enough cash", primary: !affordable, action: () => { log(`${p.name} left ${prop.name} open for another group.`); closeDecision(); endTurn(); } });
   const timeout = { timeLimit: DECISION_SECONDS, timeoutNote: "the block stays open", onTimeout: () => { log(`${p.name} ran out of time and left ${prop.name} open for another group.`); toast(`Time up — ${prop.name} not bought.`); closeDecision(); endTurn(); } };
   showDecision({ ...timeout, icon: "i-build", kicker: "Open city block", title: `${prop.name} is available`, copy: affordable ? `Buy this address to add it to ${p.name}’s city portfolio. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.` : `${p.name} holds ${money(p.cash)} and cannot cover the ${money(prop.price)} price. The block stays open.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions });
+}
+
+function completeLandmarkPurchase(p, prop) {
+  adjustCash(p, -prop.price); prop.owner = p.id;
+  log(`${p.name} bought ${prop.name} for ${money(prop.price)}.`);
+  toast(`${prop.name} is now yours.`); endTurn(); showPurchaseEffect(p, prop);
+}
+
+function showCountryQuiz(p, prop) {
+  const country = landmarkCountries[prop.name];
+  const session = state; let settled = false;
+  const valid = () => !settled && state === session && state.pending?.kind === "purchase"
+    && state.pending.pos === prop.position && prop.owner === null;
+  const finish = run => { if (!valid()) return; settled = true; run(); };
+  window.PUICountryQuiz?.show({
+    landmark: prop.name,
+    country: country.name,
+    flag: countryFlag(country.code),
+    onCorrect: () => finish(() => completeLandmarkPurchase(p, prop)),
+    onWrong: () => finish(() => {
+      log(`${p.name} guessed the country incorrectly and could not purchase ${prop.name}.`);
+      toast(`Wrong — ${prop.name} remains available.`); endTurn();
+    })
+  });
 }
 
 function drawChance(p) {

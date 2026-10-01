@@ -156,6 +156,23 @@
       <div class="dialog-actions" id="dialog-actions"></div>
     </dialog>
 
+    <dialog class="country-quiz-dialog" id="country-quiz-dialog" aria-labelledby="country-quiz-landmark" aria-describedby="country-quiz-prompt">
+      <div class="country-quiz-card">
+        <p class="country-quiz-kicker">WHERE IS THIS LANDMARK LOCATED?</p>
+        <h2 id="country-quiz-landmark"></h2>
+        <p class="country-quiz-prompt" id="country-quiz-prompt">Guess the country!</p>
+        <div class="country-quiz-feedback" id="country-quiz-feedback" role="status" aria-live="polite"></div>
+        <div class="country-quiz-reveal" id="country-quiz-reveal" aria-live="polite" hidden>
+          <span class="country-quiz-flag" id="country-quiz-flag" aria-hidden="true"></span>
+          <strong id="country-quiz-country"></strong>
+        </div>
+        <div class="country-quiz-actions" id="country-quiz-actions">
+          <button class="country-answer country-correct" id="country-quiz-correct" type="button"><span aria-hidden="true">✓</span> Correct</button>
+          <button class="country-answer country-wrong" id="country-quiz-wrong" type="button"><span aria-hidden="true">✕</span> Wrong</button>
+        </div>
+      </div>
+    </dialog>
+
     <dialog class="game-dialog log-dialog" id="log-dialog" aria-labelledby="log-title">
       <div class="dialog-header"><span class="dialog-icon"><svg aria-hidden="true"><use href="#i-info"></use></svg></span><button class="icon-button close-log" type="button" aria-label="Close activity log"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></div>
       <p class="eyebrow">City wire</p><h2 id="log-title">Everything that has happened</h2>
@@ -233,6 +250,7 @@
         <button class="primary-button acquisition-continue" id="acquisition-continue" type="button" autofocus>Continue <span aria-hidden="true">→</span></button>
       </div>
     </dialog>
+    <script src="country-quiz.js"></script>
     <script src="purchase-effects.js"></script>
     <script src="presentation-effects.js"></script>
     <script src="app.js"></script>

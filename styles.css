@@ -382,6 +382,55 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 .decision-timer::before { content: "⏱"; font-size: 15px; }
 .decision-timer.is-urgent { border-color: #d98b7a; background: #ffeee9; color: #8a3320; }
 
+/* Verbal landmark quiz ------------------------------------------------------------ */
+.country-quiz-dialog { width: min(620px, calc(100vw - 30px)); padding: 0; overflow: visible; border: 1px solid #d9e2d5; border-radius: 26px; background: #fbfcf8; color: #203d32; box-shadow: 0 28px 90px #09271f66, inset 0 0 0 5px #fff9; }
+.country-quiz-dialog::backdrop { background: #0d282170; backdrop-filter: blur(4px); animation: country-veil-in 180ms ease-out both; }
+.country-quiz-dialog[open] { animation: country-quiz-in 360ms cubic-bezier(.2,.82,.25,1) both; }
+.country-quiz-card { min-height: 360px; padding: 42px 48px 38px; display: grid; align-content: center; justify-items: center; text-align: center; }
+.country-quiz-kicker { margin: 0 0 18px; color: #647756; font: 900 13px/1.2 Nunito, sans-serif; letter-spacing: .17em; }
+.country-quiz-dialog h2 { max-width: 520px; margin: 0; font: 800 clamp(36px, 6vw, 56px)/.98 'Baloo 2', Nunito, sans-serif; letter-spacing: -.045em; text-wrap: balance; }
+.country-quiz-prompt { margin: 14px 0 28px; color: #66746c; font-size: 16px; font-weight: 700; }
+.country-quiz-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.country-answer { min-height: 62px; border-radius: 15px; font: 900 17px Nunito, sans-serif; letter-spacing: .04em; cursor: pointer; transition: transform 130ms ease, box-shadow 130ms ease, background 130ms ease; }
+.country-answer span { display: inline-grid; width: 27px; height: 27px; margin-right: 7px; place-items: center; border-radius: 50%; background: #fff9; }
+.country-correct { border: 2px solid #285f3d; background: #3f8154; color: #fff; box-shadow: 0 5px 0 #285f3d; }
+.country-correct:hover { background: #347247; transform: translateY(-2px); box-shadow: 0 7px 0 #285f3d; }
+.country-wrong { border: 2px solid #b26a68; background: #fff5f3; color: #914b49; box-shadow: 0 5px 0 #d6a09b; }
+.country-wrong:hover { background: #ffe9e5; transform: translateY(-2px); box-shadow: 0 7px 0 #d6a09b; }
+.country-answer:active { transform: translateY(3px); box-shadow: 0 2px 0 currentColor; }
+.country-answer:focus-visible { outline: 3px solid #e5c970; outline-offset: 3px; }
+.country-answer:disabled { cursor: default; }
+.country-quiz-feedback { min-height: 0; margin: 0; font: 900 clamp(30px, 5vw, 44px)/1 'Baloo 2', Nunito, sans-serif; opacity: 0; transform: translateY(6px) scale(.94); }
+.country-quiz-reveal { position: relative; margin-top: 12px; justify-items: center; }
+.country-quiz-reveal:not([hidden]) { display: grid; }
+.country-quiz-flag { font-size: clamp(70px, 13vw, 104px); line-height: 1; filter: drop-shadow(0 8px 15px #1b35252b); }
+.country-quiz-reveal strong { margin-top: 9px; font: 900 clamp(24px, 4.5vw, 38px)/1 'Baloo 2', Nunito, sans-serif; letter-spacing: .045em; }
+.country-quiz-dialog.is-answered .country-quiz-prompt { display: none; }
+.country-quiz-dialog.is-answered .country-quiz-actions { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.country-quiz-dialog.is-answered .country-quiz-feedback { min-height: auto; margin-top: 18px; animation: country-feedback 350ms cubic-bezier(.2,.85,.25,1) both; }
+.country-quiz-dialog.is-correct .country-quiz-feedback { color: #377749; }
+.country-quiz-dialog.is-wrong .country-quiz-feedback { color: #a34f4b; }
+.country-quiz-dialog.is-correct .country-quiz-flag { animation: country-flag 620ms 100ms cubic-bezier(.18,.82,.3,1) both; }
+.country-quiz-dialog.is-correct .country-quiz-reveal strong { animation: country-name 400ms 260ms ease-out both; }
+.country-quiz-dialog.is-correct .country-quiz-reveal::before, .country-quiz-dialog.is-correct .country-quiz-reveal::after { content: '✦'; position: absolute; color: #d6b953; text-shadow: 0 0 13px #f3db7c; animation: country-spark 650ms 220ms both ease-out; }
+.country-quiz-dialog.is-correct .country-quiz-reveal::before { transform: translate(-82px, 38px); }
+.country-quiz-dialog.is-correct .country-quiz-reveal::after { transform: translate(88px, 68px) scale(.7); animation-delay: 340ms; }
+.country-quiz-dialog.is-leaving { animation: country-quiz-out 180ms ease-in both; pointer-events: none; }
+.country-quiz-dialog.is-leaving::backdrop { animation: country-veil-out 180ms ease-in both; }
+@keyframes country-quiz-in { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes country-feedback { to { opacity: 1; transform: none; } }
+@keyframes country-flag { from { opacity: 0; transform: translateY(12px) scale(.72); } 70% { opacity: 1; transform: translateY(-2px) scale(1.04); } to { opacity: 1; transform: none; } }
+@keyframes country-name { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@keyframes country-spark { 0%,100% { opacity: 0; } 40% { opacity: 1; filter: brightness(1.25); } }
+@keyframes country-quiz-out { to { opacity: 0; transform: translateY(5px) scale(.97); } }
+@keyframes country-veil-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes country-veil-out { from { opacity: 1; } to { opacity: 0; } }
+@media (max-width: 560px) { .country-quiz-card { min-height: 330px; padding: 34px 22px 28px; }.country-quiz-actions { grid-template-columns: 1fr; }.country-answer { min-height: 56px; } }
+@media (prefers-reduced-motion: reduce) {
+  .country-quiz-dialog[open], .country-quiz-dialog[open] *, .country-quiz-dialog::backdrop { animation: none !important; transition: none !important; backdrop-filter: none; }
+  .country-quiz-dialog.is-answered .country-quiz-feedback { opacity: 1; transform: none; }
+}
+
 /* Completed purchase receipt — isolated from every game decision dialog. */
 .acquisition-dialog { width: min(450px, calc(100vw - 28px)); max-height: calc(100dvh - 28px); padding: 0; overflow: auto; border: 1px solid #e4dbc5; border-radius: 26px; background: #faf9f4; color: #213b33; box-shadow: 0 28px 90px #08241e66, inset 0 0 0 5px #fff8; }
 .acquisition-dialog::backdrop { background: #10272170; backdrop-filter: blur(3px); animation: acquisition-veil-in 220ms ease-out both; }

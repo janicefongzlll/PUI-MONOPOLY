@@ -23,6 +23,7 @@ function engine() {
     renderBoard = renderPlayers = renderTurn = renderToolbar = renderActivity = renderAll = () => {};
     toast = closeDecision = () => {};
     showDecision = decision => { ui = decision; };
+    window.PUICountryQuiz = { show: quiz => quiz.onCorrect(), cancel() {} };
     state = { players: playerAnimals.map((animal, id) => ({id, name:'Group '+(id+1), animal, color:playerColors[id], cash:1000, position:0, jailed:false, jailPasses:0, turns:0})), currentPlayer:0, round:1, phase:'choose', activity:[], pending:null, finishAfterRound:false };
     ensureBoard3D = async () => ({ sync() {}, async animateMovement(p, pending, onStep, signal) {
       for (let i = pending.nextStep; i < pending.route.length; i++) {
@@ -46,6 +47,13 @@ test('exact original 36-space order, price, rent, corners and stations', () => {
   assert.equal(e.run('spaces.length'), 36); assert.equal(e.run('properties.length'), 24);
   assert.deepEqual(e.plain('spaces.map(s=>s.name)'), ['Start','Taipei 101','Chance','Petronas Twin Towers','Income Tax','Marina Bay Sands','Transit Station','Burj Khalifa','Chance','Eiffel Tower','Jail','Sagrada Família','Colosseum','City Maintenance','Chance','Big Ben','Transit Station','Acropolis','Free Parking','Christ the Redeemer','Chance','Machu Picchu','Taj Mahal','Angkor Wat','Sydney Opera House','Golden Gate Bridge','Statue of Liberty','Moai of Rapa Nui','Go to Jail','Chichén Itzá','Pyramids of Giza','Neuschwanstein Castle','Mount Fuji','Great Wall of China','Hagia Sophia','Grand Canyon']);
   assert.deepEqual(e.plain('properties.map(p=>[p.price,p.rent])'), [[80,10],[100,12],[120,14],[140,16],[160,18],[180,20],[200,22],[220,24],[240,26],[260,28],[280,30],[300,32],[320,34],[340,36],[360,38],[380,40],[400,42],[420,44],[440,46],[460,48],[480,50],[500,52],[520,54],[560,58]]);
+});
+test('every purchasable landmark has one country and flag for the verbal quiz',()=>{
+  const e=engine();
+  assert.deepEqual(e.plain('properties.map(p=>Object.hasOwn(landmarkCountries,p.name))'),Array(24).fill(true));
+  assert.equal(e.run('Object.keys(landmarkCountries).length'),24);
+  assert.deepEqual(e.plain('Object.values(landmarkCountries).map(c=>[c.name,c.code.length,countryFlag(c.code).length])'),
+    e.plain('Object.values(landmarkCountries).map(c=>[c.name,2,4])'));
 });
 test('1–6 movement visits each intermediate tile; only final tile resolves', async () => {
   for (let count=1; count<=6; count++) {
@@ -107,6 +115,38 @@ test('purchase receipt uses the settled result without changing money or turns',
   pass.run(`receipts=[]; window.PUIPresentation={purchase:r=>receipts.push(r)};
     showPurchaseDecision(player(), properties[0]); ui.actions[1].action();`);
   assert.equal(pass.run('receipts.length'),0);
+});
+
+test('country quiz gates purchase and wrong answers deny it without revealing the country',()=>{
+  const wrong=engine();
+  wrong.run(`quiz=null; receipts=[];
+    window.PUICountryQuiz={show:q=>quiz=q,cancel(){}};
+    window.PUIPresentation={purchase:r=>receipts.push(r)};
+    showPurchaseDecision(player(),properties[1]); ui.actions[0].action();`);
+  assert.equal(wrong.run('player().cash'),1000);
+  assert.equal(wrong.run('properties[1].owner'),null);
+  assert.deepEqual(wrong.plain('[quiz.landmark,quiz.country,quiz.flag]'),['Petronas Twin Towers','Malaysia','🇲🇾']);
+  assert.equal(wrong.run('receipts.length'),0);
+  wrong.run('quiz.onWrong()');
+  assert.equal(wrong.run('player().cash'),1000);
+  assert.equal(wrong.run('properties[1].owner'),null);
+  assert.equal(wrong.run('player().turns'),1);
+  wrong.run('quiz.onCorrect()');
+  assert.equal(wrong.run('properties[1].owner'),null);
+  assert.equal(wrong.run('receipts.length'),0);
+
+  const correct=engine();
+  correct.run(`quiz=null; receipts=[];
+    window.PUICountryQuiz={show:q=>quiz=q,cancel(){}};
+    window.PUIPresentation={purchase:r=>receipts.push(r)};
+    showPurchaseDecision(player(),properties[1]); ui.actions[0].action(); quiz.onCorrect();`);
+  assert.equal(correct.run('player().cash'),900);
+  assert.equal(correct.run('properties[1].owner'),0);
+  assert.equal(correct.run('player().turns'),1);
+  assert.equal(correct.run('receipts.length'),1);
+  correct.run('quiz.onCorrect(); quiz.onWrong();');
+  assert.equal(correct.run('player().cash'),900);
+  assert.equal(correct.run('receipts.length'),1);
 });
 
 test('rent and challenge transfer correct amounts including upgraded rent',()=>{
