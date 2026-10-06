@@ -48,6 +48,7 @@
       openTimer = setTimeout(() => {
         if (!pending) return;
         dialog.showModal(); opened = true;
+        window.PUIPurchaseSound?.play?.();
         $('continue').focus({ preventScroll: true });
         const start = performance.now() + 360;
         const count = now => {

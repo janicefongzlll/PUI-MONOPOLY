@@ -142,7 +142,9 @@ let turnTimer = null;
 let decisionTimer = null;
 let challengeTransition = null;
 // Presentation only: effects receive values already settled by the game engine.
-const showCashEffect = (amount, label) => window.PUIPresentation?.cash(amount, label);
+const teamName = team => typeof team === "string" ? team : team?.name;
+const showCashEffect = (amount, label, team) => window.PUIPresentation?.cash(amount, label, teamName(team));
+const showNoRentEffect = team => window.PUIPresentation?.noRent(teamName(team));
 const showJailEffect = () => window.PUIPresentation?.jail();
 const showTransitEffect = () => window.PUIPresentation?.transit();
 const sparkleUpgrade = position => { ensureBoard3D().then(view => view?.sparkleUpgrade?.(position)); };
@@ -152,7 +154,7 @@ const showPurchaseEffect = (p, prop) => {
   if (window.PUIPresentation?.purchase) window.PUIPresentation.purchase({
     name: prop.name, team: p.name, price: prop.price, balance: p.cash, color: p.color
   });
-  else showCashEffect(-prop.price, "LANDMARK ACQUIRED");
+  else showCashEffect(-prop.price, "LANDMARK ACQUIRED", p);
 };
 
 function cancelBoardAnimation() {
@@ -870,7 +872,7 @@ function resumeMovement() {
     // Exactly once per logical move, never per animation frame or resumed hop.
     if (index === 0 && pending.options.collectStart && pending.options.direction > 0 && !pending.startRewarded) {
       pending.startRewarded = true;
-      adjustCash(p, 200); showCashEffect(200, "START BONUS"); log(`${p.name} passed Start and collected $200.`);
+      adjustCash(p, 200); showCashEffect(200, "START BONUS", p); log(`${p.name} passed Start and collected $200.`);
     }
     renderBoard(); renderPlayers(); queueSave();
   };
@@ -907,7 +909,7 @@ function finishMovement(p, pending) {
   state.pending = null;
   const completion = pending.completion;
   if (completion.kind === "resolve") { resolveSpace(p, pending.options); return; }
-  if (completion.kind === "chance-start") { adjustCash(p, 200); showCashEffect(200, "START BONUS"); log(`${p.name} advanced to Start and collected $200.`); }
+  if (completion.kind === "chance-start") { adjustCash(p, 200); showCashEffect(200, "START BONUS", p); log(`${p.name} advanced to Start and collected $200.`); }
   if (completion.kind === "transit-pass") log(`${p.name} used a free Transit pass to ${spaces[p.position].name}.`);
   if (completion.kind === "transit") log(`${p.name} rode the city line for $40.`);
   if (completion.kind === "jail") { p.jailed = true; log(`${p.name} was sent to Jail by ${completion.source}.`); toast(`${p.name} is in Jail.`); }
@@ -918,7 +920,7 @@ function resolveSpace(p, options = {}) {
   const space = spaces[p.position];
   if (isProperty(space)) { resolveProperty(p, space); return; }
   if (space.type === "start") { log(`${p.name} lands on Start.`); endTurn(); }
-  else if (space.type === "tax") { const paid = Math.min(p.cash, space.amount); if (chargeCash(p, space.amount)) { showCashEffect(-paid, space.name.toUpperCase()); log(`${p.name} paid ${money(space.amount)} for ${space.name}.`); toast(`${space.name}: ${money(space.amount)}`); } else if (paid) showCashEffect(-paid, "TAX LOSS"); endTurn(); }
+  else if (space.type === "tax") { const paid = Math.min(p.cash, space.amount); if (chargeCash(p, space.amount)) { showCashEffect(-paid, space.name.toUpperCase(), p); log(`${p.name} paid ${money(space.amount)} for ${space.name}.`); toast(`${space.name}: ${money(space.amount)}`); } else if (paid) showCashEffect(-paid, "TAX LOSS", p); endTurn(); }
   else if (space.type === "chance") drawChance(p);
   else if (space.type === "station") resolveStation(p, options);
   else if (space.type === "go-jail") sendToJail(p, "Go to Jail");
@@ -1017,8 +1019,8 @@ function payRent(p, prop, multiplier = 1, viaChallenge = false) {
   // Whatever they have goes to the owner; a shortfall ends their game.
   const settled = chargeCash(p, rent, owner);
   if (paid) {
-    showCashEffect(-paid, viaChallenge ? "DOUBLE RENT PAID" : "RENT PAID");
-    showCashEffect(paid, "RENT PROFIT");
+    showCashEffect(-paid, viaChallenge ? "DOUBLE RENT PAID" : "RENT PAID", p);
+    showCashEffect(paid, "RENT PROFIT", owner);
   }
   if (settled) {
     log(viaChallenge
@@ -1031,6 +1033,7 @@ function payRent(p, prop, multiplier = 1, viaChallenge = false) {
 
 function winChallenge(p, prop) {
   const owner = state.players[prop.owner];
+  showNoRentEffect(p);
   log(`${p.name} beat ${owner.name} at the mini game and stays on ${prop.name} rent free.`);
   toast(`${p.name} won the challenge — no rent!`);
   endTurn();
@@ -1085,8 +1088,8 @@ function showChanceCard(p, index) {
 function applyChance(p, card) {
   if (card.effect === "cash") {
     let settled = true;
-    if (card.amount < 0) { const paid = Math.min(p.cash, -card.amount); settled = chargeCash(p, -card.amount); if (paid) showCashEffect(-paid, card.title.toUpperCase()); }
-    else { adjustCash(p, card.amount); showCashEffect(card.amount, card.title.toUpperCase()); }
+    if (card.amount < 0) { const paid = Math.min(p.cash, -card.amount); settled = chargeCash(p, -card.amount); if (paid) showCashEffect(-paid, card.title.toUpperCase(), p); }
+    else { adjustCash(p, card.amount); showCashEffect(card.amount, card.title.toUpperCase(), p); }
     if (settled) { log(`${p.name}: ${card.title} (${money(card.amount)}).`); toast(`${card.amount >= 0 ? "Collected" : "Paid"} ${money(Math.abs(card.amount))}`); }
     endTurn();
   }
@@ -1117,7 +1120,7 @@ function sendToJail(p, source) { showJailEffect(); return travelPlayer(p, [corne
 function showJailDecision() {
   const p = player(); state.phase = "decision"; setPending({ kind: "jail", player: p.id }); renderTurn();
   const actions = [{ label: "Miss this turn", action: () => { p.jailed = false; log(`${p.name} missed a turn to leave Jail.`); closeDecision(); endTurn(); } }];
-  if (p.cash >= 50) actions.push({ label: "Pay $50 and choose steps", primary: true, action: () => { adjustCash(p, -50); showCashEffect(-50, "RELEASE FEE"); p.jailed = false; log(`${p.name} paid $50 to leave Jail.`); closeDecision(); state.phase = "choose"; renderAll(); toast("You’re out — choose your steps."); } });
+  if (p.cash >= 50) actions.push({ label: "Pay $50 and choose steps", primary: true, action: () => { adjustCash(p, -50); showCashEffect(-50, "RELEASE FEE", p); p.jailed = false; log(`${p.name} paid $50 to leave Jail.`); closeDecision(); state.phase = "choose"; renderAll(); toast("You’re out — choose your steps."); } });
   if (p.jailPasses > 0) actions.splice(1, 0, { label: "Use Jail pass and choose steps", action: () => { p.jailPasses--; p.jailed = false; log(`${p.name} used a Get Out of Jail pass.`); closeDecision(); state.phase = "choose"; renderAll(); toast("Pass used — choose your steps."); } });
   showDecision({ icon: "i-lock", kicker: "You’re in Jail", title: "Choose how to leave", copy: p.cash >= 50 ? "Pay the release fee, use a Get Out of Jail pass, or take a breather and miss this turn." : `The $50 fee is beyond ${p.name}’s ${money(p.cash)}. Use a pass if you hold one, or miss this turn.`, actions });
 }
@@ -1208,7 +1211,7 @@ function bankrupt(p, creditor, shortfall) {
 function developProperty(prop) {
   const p = player(); const cost = buildingCost(prop); if (prop.owner !== p.id || prop.building) return;
   if (p.cash < cost) { toast(`${p.name} needs ${money(cost)} to upgrade ${prop.name}.`); return; }
-  adjustCash(p, -cost); showCashEffect(-cost, "LANDMARK UPGRADED"); prop.building = true; sparkleUpgrade(prop.position); log(`${p.name} added a City Upgrade to ${prop.name} for ${money(cost)}. Rent is now ${money(prop.rent * 2)}.`); toast(`${prop.name} upgraded — rent doubled.`); renderAll();
+  adjustCash(p, -cost); showCashEffect(-cost, "LANDMARK UPGRADED", p); prop.building = true; sparkleUpgrade(prop.position); log(`${p.name} added a City Upgrade to ${prop.name} for ${money(cost)}. Rent is now ${money(prop.rent * 2)}.`); toast(`${prop.name} upgraded — rent doubled.`); renderAll();
 }
 
 function endTurn() {

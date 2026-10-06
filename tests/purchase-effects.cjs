@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const root = path.join(__dirname, '..');
 function fixture(reduced = false) {
   let now = 0, next = 0; const tasks = new Map(), nodes = new Map();
+  let soundPlays = 0;
   const schedule = (fn, delay = 0) => { tasks.set(++next, {fn, time: now + delay}); return next; };
   const element = id => {
     if (!nodes.has(id)) {
@@ -19,7 +20,7 @@ function fixture(reduced = false) {
     return nodes.get(id);
   };
   const images = [];
-  const ctx = vm.createContext({ document: {getElementById:element}, window:{matchMedia:()=>({matches:reduced})},
+  const ctx = vm.createContext({ document: {getElementById:element}, window:{matchMedia:()=>({matches:reduced}), PUIPurchaseSound:{play:()=>soundPlays++}},
     Image: function() { images.push(this); }, performance:{now:()=>now},
     setTimeout:schedule, clearTimeout:id=>tasks.delete(id), cancelAnimationFrame:id=>tasks.delete(id),
     requestAnimationFrame:fn=>schedule(()=>fn(now),16)
@@ -34,15 +35,16 @@ function fixture(reduced = false) {
     }
     now=end;
   };
-  return {api:ctx.window.PUILandmarkAcquisition,element,tick,images};
+  return {api:ctx.window.PUILandmarkAcquisition,element,tick,images,get soundPlays(){return soundPlays;}};
 }
 const receipt = Object.freeze({name:'Taipei 101',team:'Team <One>',price:80,balance:920,color:'#abc'});
 for (const mode of ['automatic','continue','escape','navigation','reduced']) {
   const f=fixture(mode==='reduced'); let completed=0;
   f.api.show(receipt,()=>completed++);
-  if(mode==='navigation') { f.api.cancel(); f.tick(4000); assert.equal(f.element('acquisition-dialog').open,false); }
+  if(mode==='navigation') { f.api.cancel(); f.tick(4000); assert.equal(f.element('acquisition-dialog').open,false); assert.equal(f.soundPlays,0); }
   else {
     f.tick(190); assert.equal(f.element('acquisition-dialog').open,true);
+    assert.equal(f.soundPlays,1);
     assert.equal(f.element('acquisition-team').textContent,'Team <One>');
     assert.equal(f.element('acquisition-price').textContent,'−$80');
     f.tick(1100); assert.equal(f.element('acquisition-balance').textContent,'$920');

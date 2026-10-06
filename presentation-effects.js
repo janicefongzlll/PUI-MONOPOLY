@@ -17,7 +17,7 @@
     }
     root.hidden = false; root.className = `event-fx is-${event.kind}${event.major ? ' is-major' : ''}`;
     kicker.textContent = event.kicker || '';
-    amount.textContent = event.amount === undefined ? '' : `${event.amount < 0 ? '-' : '+'}${money(event.amount)}`;
+    amount.textContent = event.amountText ?? (event.amount === undefined ? '' : `${event.amount < 0 ? '-' : '+'}${money(event.amount)}`);
     label.textContent = event.label || '';
     // Restart CSS animation without touching gameplay or player input state.
     void root.offsetWidth; root.classList.add('is-active');
@@ -30,15 +30,21 @@
   window.PUIPresentation = {
     purchase(receipt) {
       if (window.PUILandmarkAcquisition) show({ kind: 'purchase', receipt: { ...receipt } });
-      else this.cash(-receipt.price, 'LANDMARK ACQUIRED');
+      else this.cash(-receipt.price, 'LANDMARK ACQUIRED', receipt.team);
     },
     cancelPurchase() {
       for (let i = queue.length - 1; i >= 0; i--) if (queue[i].kind === 'purchase') queue.splice(i, 1);
       window.PUILandmarkAcquisition?.cancel();
     },
-    cash(value, labelText) {
+    cash(value, labelText, teamName) {
       if (!value) return;
-      show({ kind: value > 0 ? 'profit' : 'loss', amount: value, label: labelText || (value > 0 ? 'PROFIT' : 'LOSS'), major: Math.abs(value) >= 100, duration: 1800 });
+      const result = value > 0 ? 'PROFIT' : 'LOSS';
+      const team = String(teamName || '').trim();
+      show({ kind: value > 0 ? 'profit' : 'loss', kicker: team ? `${team} · ${result}` : result, amount: value, label: labelText || result, major: Math.abs(value) >= 100, duration: 1800 });
+    },
+    noRent(teamName) {
+      const team = String(teamName || '').trim();
+      show({ kind: 'profit', kicker: team ? `${team} · CHALLENGE WON` : 'CHALLENGE WON', amountText: '$0', label: 'NO RENT PAID', duration: 1500 });
     },
     jail() { show({ kind: 'jail', kicker: 'CITY SECURITY', label: 'GO TO JAIL!', duration: 1650, major: true }); },
     transit() { show({ kind: 'transit', kicker: 'CITY LINE', label: 'TRAIN TRAVEL', duration: 1450, major: true }); },
