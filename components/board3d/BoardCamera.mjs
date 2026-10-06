@@ -100,6 +100,31 @@ export class BoardCamera {
     return out.copy(eye).multiplyScalar(distance * 1.12);
   }
 
+  // A short presentation-only pullback; the view, target and game state are preserved.
+  beginMinigamePullback() {
+    const previousMode = this.mode;
+    const origin = this.camera.position.clone();
+    const target = this.target.clone();
+    const offset = origin.clone().sub(target);
+    let finished = false;
+    this.setMode(CAMERA_MODES.CINEMA);
+    return {
+      update: seconds => {
+        if (finished || this.mode !== CAMERA_MODES.CINEMA) return;
+        const t = THREE.MathUtils.clamp(seconds / .85, 0, 1);
+        const eased = t * t * (3 - 2 * t);
+        this.camera.position.copy(origin).addScaledVector(offset, eased * (this.reducedMotion ? 0 : .12));
+        this.target.copy(target); this.camera.lookAt(target);
+      },
+      finish: () => {
+        if (finished) return;
+        finished = true;
+        if (this.mode === CAMERA_MODES.CINEMA) this.setMode(previousMode);
+        // Normal camera damping makes the return gentle; never snap to origin.
+      }
+    };
+  }
+
   update(delta) {
     // The opening fly-through drives the camera along its own path.
     if (this.mode === CAMERA_MODES.CINEMA) return;

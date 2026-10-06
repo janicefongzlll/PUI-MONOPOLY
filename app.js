@@ -140,6 +140,7 @@ let movementController = null;
 let movementPromise = null;
 let turnTimer = null;
 let decisionTimer = null;
+let challengeTransition = null;
 // Presentation only: effects receive values already settled by the game engine.
 const showCashEffect = (amount, label) => window.PUIPresentation?.cash(amount, label);
 const showJailEffect = () => window.PUIPresentation?.jail();
@@ -155,6 +156,8 @@ const showPurchaseEffect = (p, prop) => {
 };
 
 function cancelBoardAnimation() {
+  challengeTransition = null;
+  window.PUIMinigameTransition?.cancel();
   window.PUICountryQuiz?.cancel?.();
   window.PUIPresentation?.cancelPurchase?.();
   movementController?.abort(); movementController = null; movementPromise = null;
@@ -932,12 +935,41 @@ function showRentDecision(p, prop) {
     details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Rent ${money(rent)} · doubled ${money(rent * 2)}</span></div><strong class="money">${money(rent)}</strong></div>`,
     actions: [
       { label: `Pay ${money(rent)} rent`, primary: true, action: () => { closeDecision(); payRent(p, prop, 1); } },
-      { label: `Challenge ${owner.name}`, action: () => { closeDecision(); log(`${p.name} challenged ${owner.name} to a mini game over ${prop.name}.`); showChallengeDecision(p, prop); } }
+      { label: `Challenge ${owner.name}`, action: () => beginChallenge(p, prop) }
     ],
     timeLimit: DECISION_SECONDS,
     timeoutNote: "the rent is paid automatically",
     onTimeout: () => { log(`${p.name} ran out of time and paid the rent rather than challenging.`); toast("Time up — rent paid."); closeDecision(); payRent(p, prop, 1); }
   });
+}
+
+async function beginChallenge(p, prop) {
+  if (!state || challengeTransition || state.pending?.kind !== "rent"
+    || state.pending.player !== p.id || state.pending.pos !== prop.position
+    || prop.owner === null || prop.owner === p.id) return;
+  const session = state;
+  const run = challengeTransition = {};
+  stopDecisionTimer(); closeDecision();
+  // Save the existing challenge decision immediately. Reloading during the visual
+  // transition resumes that decision, without replaying it or charging any rent.
+  const pending = { kind: "challenge", player: p.id, pos: prop.position };
+  setPending(pending);
+  log(`${p.name} challenged ${state.players[prop.owner].name} to a mini game over ${prop.name}.`);
+  const camera = board3D?.cameraControl.beginMinigamePullback?.();
+  let completed = true;
+  try {
+    // play() runs synchronously up to audio.play(), preserving the click's audio permission.
+    completed = await (window.PUIMinigameTransition?.play({
+      onFrame: seconds => camera?.update(seconds), onFinish: () => camera?.finish()
+    }) ?? true);
+  } catch (error) {
+    console.warn("Minigame transition unavailable; opening the challenge.", error);
+  } finally {
+    camera?.finish();
+  }
+  if (challengeTransition !== run) return;
+  challengeTransition = null;
+  if (completed && state === session && state.pending === pending) showChallengeDecision(p, prop);
 }
 
 function showChallengeDecision(p, prop) {

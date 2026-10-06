@@ -149,6 +149,38 @@ test('country quiz gates purchase and wrong answers deny it without revealing th
   assert.equal(correct.run('receipts.length'),1);
 });
 
+test('challenge transition runs once, preserves stakes and hands off to both existing outcomes',async()=>{
+  for (const win of [true,false]) {
+    const e=engine();
+    e.run(`properties[0].owner=1; player().position=1; transitionPlays=0; transitionFrames=[];
+      window.PUIMinigameTransition={play:()=>{transitionPlays++;return new Promise(done=>{finishTransition=done;})},cancel(){}};
+      showRentDecision(player(),properties[0]); task=ui.actions[1].action();`);
+    assert.equal(e.run('state.pending.kind'),'challenge');
+    assert.equal(e.run('player().cash'),1000);
+    assert.equal(e.run('player().turns'),0);
+    e.run('beginChallenge(player(),properties[0]);');
+    assert.equal(e.run('transitionPlays'),1);
+    assert.equal(e.run('snapshotGame().state.pending.kind'),'challenge');
+    e.run('finishTransition(true)'); await e.run('task');
+    assert.equal(e.run('ui.kicker'),'Mini game challenge');
+    assert.equal(e.run('player().cash'),1000);
+    e.run(`ui.actions[${win?1:0}].action()`);
+    assert.deepEqual(e.plain('state.players.slice(0,2).map(p=>p.cash)'),win?[1000,1000]:[980,1020]);
+    assert.equal(e.run('properties[0].owner'),1);
+    assert.equal(e.run('player().turns'),1);
+  }
+});
+test('cancelled challenge transitions cannot reopen a stale result screen',async()=>{
+  const e=engine();
+  e.run(`properties[0].owner=1; window.PUIMinigameTransition={play:()=>new Promise(done=>finishTransition=done),cancel:()=>finishTransition(false)};
+    showRentDecision(player(),properties[0]); task=ui.actions[1].action(); cancelBoardAnimation();`);
+  await e.run('task');
+  assert.equal(e.run('ui.kicker'),'Rival landmark');
+  assert.equal(e.run('player().cash'),1000);
+  e.run('resumePending()');
+  assert.equal(e.run('ui.kicker'),'Mini game challenge');
+});
+
 test('rent and challenge transfer correct amounts including upgraded rent',()=>{
   for(const [upgraded,multiplier,amount] of [[false,1,10],[false,2,20],[true,1,20],[true,2,40]]) {
     const e=engine(); e.run(`properties[0].owner=1;properties[0].building=${upgraded};payRent(player(),properties[0],${multiplier},${multiplier===2});`);
