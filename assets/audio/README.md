@@ -1,22 +1,12 @@
-# Minigame transition cue
+# Local game audio
 
-`mini-game-with-ding.mp3` is an unmodified copy of the user-supplied
-`mini_game_with_ding.mp3`. It plays only after an explicit Challenge click.
+All active audio comes from the files supplied by the user. No YouTube player is used.
 
-Timing measured against the supplied `ScreenRecording_10-03-2026 11-56-18_1.mov`:
+- `opening-loop.m4a`: Opening.mp3, trimmed from 5 seconds through its end (28.622 seconds). Native loop until the first movement is selected.
+- `gameplay-loop.m4a`: Game Play.mp3, trimmed to 0–31 seconds. Native loop; pauses for challenge narration and owner music, then resumes from its previous position.
+- `frog.mp3`, `monkey.mp3`, `wolf.mp3`, `horse.mp3`: supplied team files, unchanged. Selected from the current landmark owner's animal identity at challenge entry; full-file loops.
+- `minigame-narration.m4a`: AAC audio copied losslessly from mini game narration.mov. 1.916 seconds; existing transition retimed with title entrance at approximately 0.8 seconds, matching the supplied clip.
 
-- Decoded MP3: 5.0188 seconds (5.0678 seconds including MP3 frame padding).
-- Reference recording: 2.4288 seconds.
-- Cross-correlation of decoded mono audio places the reference's audio at
-  +0.9878 seconds in the MP3.
-- Reference title first enters at approximately 1.40 seconds, giving a title
-  cue at approximately 2.39 seconds in the MP3.
-- Icon appears with the MP3's opening ding; text pops at 2.39 seconds and settles
-  0.43 seconds later. Fade occupies the final 6% of the sound.
+`opening.mp3` and `gameplay.mp3` retain the original source files. The earlier `mini-game-with-ding.mp3` is retained but no longer used.
 
-`minigame-transition.js` samples the audio playback time each animation frame.
-Visuals and camera therefore stay on that clock, including while audio buffers.
-If playback fails or stalls, a bounded silent fallback continues into the normal
-challenge screen. Navigation cancels audio and the continuation together.
-
-The reference video is used for timing only; no reference artwork is included.
+One native BGM element handles every music track. A separate narration element plays only during the transition, with BGM paused. An Enable music/Retry music button appears on playback failure. Navigation and game end stop all music; audio state never changes game calculations.

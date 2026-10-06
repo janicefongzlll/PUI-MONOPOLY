@@ -156,6 +156,7 @@ const showPurchaseEffect = (p, prop) => {
 };
 
 function cancelBoardAnimation() {
+  window.PUIOpeningBgm?.stop?.();
   challengeTransition = null;
   window.PUIMinigameTransition?.cancel();
   window.PUICountryQuiz?.cancel?.();
@@ -278,6 +279,8 @@ const activePlayers = () => state.players.filter(p => !p.out);
 const icon = (name) => `<svg aria-hidden="true"><use href="#${name}"></use></svg>`;
 
 function init() {
+  // Local music stays silent until a game starts.
+  window.PUIOpeningBgm?.warm?.();
   $("board-view-button").addEventListener("click", () => board3D?.toggleOverview());
   $("board-3d-info-close").addEventListener("click", () => { $("board-3d-info").hidden = true; });
   $("board-skip-intro").addEventListener("click", () => board3D?.skipIntro());
@@ -290,7 +293,11 @@ function init() {
   $("log-button").addEventListener("click", () => $("log-dialog").showModal());
   document.querySelectorAll(".close-log").forEach(button => button.addEventListener("click", () => $("log-dialog").close()));
   document.querySelectorAll(".close-rules").forEach(button => button.addEventListener("click", () => $("rules-dialog").close()));
-  document.querySelectorAll(".close-dialog").forEach(button => button.addEventListener("click", () => $("decision-dialog").close()));
+  document.querySelectorAll(".close-dialog").forEach(button => button.addEventListener("click", closeDecision));
+  $("decision-dialog").addEventListener("cancel", () => {
+    if (state?.pending?.kind === "challenge") window.PUIOpeningBgm?.stopChallenge?.();
+  });
+  $("decision-dialog").addEventListener("click", event => { if (event.target === $("decision-dialog")) closeDecision(); });
   document.querySelectorAll(".close-trade").forEach(button => button.addEventListener("click", () => $("trade-dialog").close()));
   $("reset-button").addEventListener("click", prepareNewGame);
   $("choose-steps-button").addEventListener("click", openStepChooser);
@@ -308,7 +315,7 @@ function init() {
   $("tab-active").addEventListener("click", () => setLibraryTab("active"));
   $("tab-complete").addEventListener("click", () => setLibraryTab("complete"));
   $("save-game-button").addEventListener("click", () => saveGame(true));
-  [$("decision-dialog"), $("rules-dialog"), $("trade-dialog"), $("log-dialog"), $("results-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
+  [$("rules-dialog"), $("trade-dialog"), $("log-dialog"), $("results-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
   document.addEventListener("fullscreenchange", () => document.body.classList.toggle("is-fullscreen", Boolean(document.fullscreenElement)));
   window.addEventListener("offline", () => { if (canSync()) setSync("offline"); });
   window.addEventListener("online", () => { if (!canSync()) return; retryDelay = 0; if (saveDirty) saveGame(false); else setSync("saved"); });
@@ -359,6 +366,8 @@ async function startGame(event) {
   $("setup-screen").classList.add("hidden");
   $("play-screen").classList.remove("hidden");
   renderAll();
+  // The soundtrack is intentionally started from the player's Start PUI Fortune click.
+  window.PUIOpeningBgm?.start?.();
   log(`${player().name} opens the city. Select the ${player().animal.name} to choose a move.`);
   runBoardIntro();
   if (supabaseClient && authUser) await createCloudGame();
@@ -366,6 +375,7 @@ async function startGame(event) {
 
 function resetGame() {
   cancelBoardAnimation();
+  window.PUIOpeningBgm?.stop?.();
   resetSync();
   exitGameFullscreen();
   state = null;
@@ -376,6 +386,7 @@ function resetGame() {
 
 function showSetup() {
   cancelBoardAnimation();
+  window.PUIOpeningBgm?.stop?.();
   resetSync();
   exitGameFullscreen();
   state = null;
@@ -645,6 +656,7 @@ async function loadCloudGame(gameId) {
   lastSyncedAt = new Date(); saveDirty = false; setSync("saved");
   renderAll();
   if (state.phase === "complete") { endGame(); return; }
+  if (state.players.some(p => p.turns > 0) || state.pending) window.PUIOpeningBgm?.startGameplay?.();
   runBoardIntro();
   if (state.pending?.kind === "movement") { resumeMovement(); toast(`${state.gameName} resumed — continuing your move.`); return; }
   if (state.pending?.kind === "turn-end") { completeTurn(state); return; }
@@ -816,6 +828,8 @@ function openStepChooser() {
 
 function chooseSteps(steps) {
   if (!state || state.phase !== "choose" || !Number.isInteger(steps) || steps < 1 || steps > 6) return;
+  // The opening track gives way to gameplay music when the first move actually begins.
+  window.PUIOpeningBgm?.startGameplay?.();
   const p = player();
   closeDecision();
   log(`${p.name} chose to move ${steps} ${steps === 1 ? "step" : "steps"}.`);
@@ -949,6 +963,8 @@ async function beginChallenge(p, prop) {
     || prop.owner === null || prop.owner === p.id) return;
   const session = state;
   const run = challengeTransition = {};
+  // The transition announcement must be heard on its own before a team track begins.
+  window.PUIOpeningBgm?.transition?.();
   stopDecisionTimer(); closeDecision();
   // Save the existing challenge decision immediately. Reloading during the visual
   // transition resumes that decision, without replaying it or charging any rent.
@@ -975,6 +991,8 @@ async function beginChallenge(p, prop) {
 function showChallengeDecision(p, prop) {
   const owner = state.players[prop.owner];
   const rent = rentOf(prop);
+  // Properties inherit music from their current owner, never from the challenger.
+  window.PUIOpeningBgm?.startChallenge?.(owner.animal?.name);
   state.phase = "decision"; setPending({ kind: "challenge", player: p.id, pos: prop.position });
   showDecision({
     icon: "i-flag",
@@ -1161,7 +1179,10 @@ function resumePending() {
   state.pending = null; state.phase = "choose"; renderTurn();
 }
 
-function closeDecision() { if ($("decision-dialog").open) $("decision-dialog").close(); }
+function closeDecision() {
+  if (state?.pending?.kind === "challenge") window.PUIOpeningBgm?.stopChallenge?.();
+  if ($("decision-dialog").open) $("decision-dialog").close();
+}
 function adjustCash(p, amount) { p.cash += amount; renderPlayers(); queueSave(); }
 
 // Cash never goes below zero. Optional spending is refused outright; a forced payment a
@@ -1192,6 +1213,7 @@ function developProperty(prop) {
 
 function endTurn() {
   if (!state || state.pending?.kind === "turn-end" || state.phase === "complete") return;
+  window.PUIOpeningBgm?.stopChallenge?.();
   state.pending = { kind: "turn-end" };
   const p = player(); p.turns++; state.phase = "moving"; renderAll();
   const session = state;
@@ -1230,6 +1252,7 @@ function submitTrade(event) {
 }
 
 function endGame() {
+  window.PUIOpeningBgm?.stop?.();
   state.phase = "complete"; state.pending = null;
   // Bankrupt groups always place below anyone still standing, however small their pile.
   const scores = state.players.map(p => ({ ...p, wealth: totalWealth(p), propertyValue: properties.filter(x => x.owner === p.id).reduce((sum, x) => sum + propertyWorth(x), 0) }))

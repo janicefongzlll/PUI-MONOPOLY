@@ -390,6 +390,10 @@ h1, h2, h3, .brand, .center-title, .turn-summary strong, .player-cash, .property
 .minigame-transition-icon { width: clamp(74px, 9vw, 112px); height: auto; opacity: 0; filter: drop-shadow(0 5px 5px #0b281f66); }
 .minigame-transition-icon svg { display: block; width: 100%; height: auto; }
 .minigame-transition-title { margin: 0; color: #fff9df; font: 900 clamp(48px, 8vw, 116px)/1.05 'Baloo 2', Nunito, sans-serif; letter-spacing: -.045em; -webkit-text-stroke: 1.5px #244f3c; paint-order: stroke fill; text-shadow: 0 5px 0 #244f3c, 0 10px 24px #0a231b80; opacity: 0; }
+
+/* Only shown if the browser requires an explicit sound gesture or a retry. */
+.music-retry { position: fixed; right: 18px; bottom: 18px; z-index: 1500; padding: 12px 18px; border: 2px solid #315d46; border-radius: 14px; background: #fff9df; color: #244f3c; font-weight: 800; cursor: pointer; }
+.music-retry[hidden] { display: none; }
 @media (max-width: 560px) { .minigame-transition-copy { --minigame-icon-offset: 36px; } }
 
 /* Verbal landmark quiz ------------------------------------------------------------ */

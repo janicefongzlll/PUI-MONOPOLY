@@ -1,13 +1,15 @@
-// Presentation only. Timings measured from the supplied MP3 and reference recording.
-// Reference audio correlates at +0.9878s in the MP3; text enters at video ~1.40s.
+// Soundtrack extracted losslessly from the supplied mini game narration.mov.
+// Its title enters around 0.8 seconds; the audio ends after 1.92 seconds.
 (() => {
   const root = document.getElementById('minigame-transition');
   if (!root) return;
   const icon = root.querySelector('.minigame-transition-icon');
   const title = root.querySelector('.minigame-transition-title');
-  const DURATION = 5.0188, TITLE_CUE = 2.39;
-  const audio = new Audio('assets/audio/mini-game-with-ding.mp3');
+  const DURATION = 1.92, TITLE_CUE = .8, ICON_SETTLE = 1.17;
+  const audio = new Audio('assets/audio/minigame-narration.m4a');
   audio.preload = 'auto';
+  audio.id = 'minigame-narration'; audio.hidden = true;
+  document.body?.appendChild?.(audio);
   let current = null;
 
   function play({ onFrame, onFinish } = {}) {
@@ -34,12 +36,12 @@
     } else {
       animate(icon, [
         {opacity:0,transform:'translateY(var(--minigame-icon-offset)) scale(.45)',offset:0},
-        {opacity:1,transform:'translateY(var(--minigame-icon-offset)) scale(1.12)',offset:.14/2.76},
-        {opacity:1,transform:'translateY(var(--minigame-icon-offset)) scale(1)',offset:.34/2.76},
-        {opacity:1,transform:'translateY(var(--minigame-icon-offset)) scale(1)',offset:TITLE_CUE/2.76},
-        {opacity:1,transform:'translateY(-4px) scale(1.05)',offset:2.60/2.76},
+        {opacity:1,transform:'translateY(var(--minigame-icon-offset)) scale(1.12)',offset:.14/ICON_SETTLE},
+        {opacity:1,transform:'translateY(var(--minigame-icon-offset)) scale(1)',offset:.34/ICON_SETTLE},
+        {opacity:1,transform:'translateY(var(--minigame-icon-offset)) scale(1)',offset:TITLE_CUE/ICON_SETTLE},
+        {opacity:1,transform:'translateY(-4px) scale(1.05)',offset:1.01/ICON_SETTLE},
         {opacity:1,transform:'translateY(0) scale(1)',offset:1}
-      ], 2.76);
+      ], ICON_SETTLE);
       animate(title, [
         {opacity:0,transform:'translateY(14px) scale(.62)',offset:0},
         {opacity:1,transform:'translateY(-4px) scale(1.10)',offset:.46},

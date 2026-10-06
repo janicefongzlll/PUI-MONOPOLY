@@ -29,7 +29,7 @@ function fixture({failure=false,reduced=false}={}) {
     const move=time=>{
       if(audio.running&&playing)audio.currentTime+=(time-now)/1000;
       now=time;
-      if(audio.currentTime>=5.0188){audio.running=false;listeners.get('ended')?.();}
+      if(audio.currentTime>=1.92){audio.running=false;listeners.get('ended')?.();}
     };
     while(true){const task=[...timers].sort((a,b)=>a[1].at-b[1].at)[0];if(!task||task[1].at>endTime)break;
       timers.delete(task[0]);move(task[1].at);task[1].fn();}
@@ -41,9 +41,9 @@ function fixture({failure=false,reduced=false}={}) {
   const f=fixture(); let frames=0,finished=0;
   const task=f.api.play({onFrame:()=>frames++,onFinish:()=>finished++});
   assert.equal(f.api.play(),task);assert.equal(f.audio.plays,1);assert.equal(f.main.inert,true);
-  f.advance(2300);assert.ok(f.animations[2].currentTime<f.animations[2].options.delay);
-  f.advance(2600);assert.ok(f.animations[2].currentTime>f.animations[2].options.delay);
-  const paused=f.audio.currentTime*1000;f.advance(2900,false);
+  f.advance(700);assert.ok(f.animations[2].currentTime<f.animations[2].options.delay);
+  f.advance(1000);assert.ok(f.animations[2].currentTime>f.animations[2].options.delay);
+  const paused=f.audio.currentTime*1000;f.advance(1300,false);
   assert.equal(f.animations[2].currentTime,paused,'visual clock must freeze when audio stalls');
   f.advance(5400);assert.equal(await task,true);assert.equal(f.main.inert,false);assert.equal(f.root.hidden,true);
   assert.equal(finished,1);assert.ok(frames>0);
