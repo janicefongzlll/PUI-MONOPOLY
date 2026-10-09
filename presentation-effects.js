@@ -46,8 +46,8 @@
       const team = String(teamName || '').trim();
       show({ kind: 'profit', kicker: team ? `${team} · CHALLENGE WON` : 'CHALLENGE WON', amountText: '$0', label: 'NO RENT PAID', duration: 1500 });
     },
-    jail() { show({ kind: 'jail', kicker: 'CITY SECURITY', label: 'GO TO JAIL!', duration: 1650, major: true }); },
-    transit() { show({ kind: 'transit', kicker: 'CITY LINE', label: 'TRAIN TRAVEL', duration: 1450, major: true }); },
+    jail() { show({ kind: 'jail', kicker: 'JOURNEY DETOUR', label: 'GO TO JAIL!', duration: 1650, major: true }); },
+    transit() { show({ kind: 'transit', kicker: 'ALL ABOARD', label: 'TRAIN TRAVEL', duration: 1450, major: true }); },
     upgrade() { show({ kind: 'upgrade', label: 'LANDMARK UPGRADED', duration: 1050 }); }
   };
 })();

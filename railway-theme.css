@@ -1,0 +1,161 @@
+/* MJM LINE presentation identity. Presentation only; game data and board geometry stay in their existing files. */
+:root {
+  --rail-navy: #12384c;
+  --rail-teal: #426f72;
+  --rail-coral: #d96856;
+  --rail-pearl: #f7fbff;
+  --rail-cream: #faf7ef;
+  --rail-border: #cbd9d9;
+  --rail-display: 'Arial Black', 'Helvetica Neue', Arial, sans-serif;
+  --rail-body: Arial, Helvetica, sans-serif;
+  --ink: var(--rail-navy);
+  --muted: #58727c;
+  --paper: var(--rail-cream);
+  --surface: var(--rail-pearl);
+  --line: var(--rail-border);
+  --pine: var(--rail-teal);
+  --mint: #dfebe5;
+  --lime: #e5d8b2;
+  --coral: var(--rail-coral);
+  --sky: #bcddec;
+  --violet: #688b9f;
+  --shadow: 0 12px 30px #12384c0b;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --wd-brand: var(--rail-teal);
+  --wd-brand-hover: #31595e;
+  --wd-brand-dark: #284f50;
+  --wd-brand-deep: var(--rail-navy);
+  --wd-brand-soft: #e8f0ed;
+  --wd-panel-border: var(--rail-border);
+  --wd-green-border: #aac4bf;
+  --wd-green-surface: #eef4ef;
+  --wd-green-shadow: #cadbd4;
+  --wd-yellow-surface: #faf4e7;
+  --wd-yellow-border: #d5c7a9;
+  --wd-yellow-shadow: #e8dbc3;
+  --wd-pink-surface: #faece8;
+  --wd-pink-border: #d4a59b;
+  --wd-pink-shadow: #ebc8bd;
+  --wd-blue-surface: #eaf3f7;
+  --wd-blue-border: #a8c2cd;
+  --wd-blue-shadow: #c6dce6;
+  --wd-lavender-surface: #eff2f4;
+  --wd-lavender-border: #a9bbc4;
+  --wd-lavender-shadow: #d3dfe5;
+}
+
+body { background: var(--rail-cream); color: var(--rail-navy); font-family: var(--rail-body); font-weight: 400; }
+[hidden] { display: none !important; }
+button, input, select, .name-field input, .select-label input, .select-label select { font-family: var(--rail-body); }
+h1, h2, h3, .brand, .center-title, .wd-title, .wd-heading,
+.setup-copy h1, .lobby-heading h1, .setup-card h2, .saved-game h2,
+.spotlight-text strong, .space-tip h4 { font-family: var(--rail-display); font-weight: 900; letter-spacing: -.035em; }
+.turn-summary strong, .player-cash, .property-stat strong, .score-wealth { font-family: var(--rail-body); font-weight: 700; font-variant-numeric: tabular-nums; }
+.eyebrow, .small-label { font-family: var(--rail-body); font-weight: 700; font-size: 10px; letter-spacing: .2em; color: var(--muted); }
+.topbar { height: 80px; padding-inline: clamp(16px, 3vw, 46px); border-bottom: 1px solid var(--rail-border); background: var(--rail-pearl); }
+.brand { gap: 12px; color: var(--rail-navy); }
+.railway-mark.brand-mark { width: 38px; height: 42px; padding: 6px; align-items: center; justify-content: center; background: transparent; border: 1px solid #426f7277; border-radius: 6px; box-shadow: none; }
+.railway-mark svg { width: 25px; height: 28px; }
+.railway-brand-copy { display: grid; gap: 8px; }
+.brand strong { font-size: 17px; letter-spacing: -.02em; line-height: 1; }
+.brand small { font: 700 8px/1 var(--rail-body); letter-spacing: .18em; color: var(--muted); }
+.railway-period { color: var(--rail-coral); }
+.topbar-actions { gap: 8px; }
+.text-button, .icon-button { color: var(--rail-navy); font-weight: 700; border-radius: 8px; }
+.text-button:hover, .icon-button:hover { background: #426f720b; }
+
+.auth-screen, .setup-screen { max-width: 1240px; gap: clamp(35px, 6vw, 90px); padding-top: 50px; background: transparent; }
+.lobby-screen { background: transparent; }
+.setup-copy { position: relative; padding-bottom: 190px; }
+.setup-copy::after { content: ''; position: absolute; bottom: 0; left: -12px; width: 104%; height: 164px; background: url('assets/mjm-railway-scene.svg') center / contain no-repeat; pointer-events: none; }
+.setup-copy h1 { font: 900 clamp(44px, 5.8vw, 78px)/.94 var(--rail-display); letter-spacing: -.045em; color: var(--rail-navy); margin: 22px 0; }
+.setup-copy h1 span { text-decoration: none; color: var(--rail-coral); }
+.intro { color: #506d79; font-size: 16px; font-weight: 400; line-height: 1.75; max-width: 450px; }
+.railway-route { display: flex; align-items: center; gap: 12px; margin: 25px 0 0; color: var(--rail-navy); font: 700 9px/1.4 var(--rail-body); letter-spacing: .17em; }
+.railway-route i { position: relative; width: 76px; height: 1px; background: #87a9b2; }
+.railway-route i::before, .railway-route i::after { content: ''; position: absolute; top: -2px; width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--rail-teal); background: var(--rail-cream); }
+.railway-route i::before { left: 0; }.railway-route i::after { right: 0; background: var(--rail-coral); border-color: var(--rail-coral); }
+.setup-card, .panel, .saved-game, .game-dialog, .activity-panel { border: 1px solid var(--rail-border); box-shadow: var(--shadow); border-radius: 18px; background: var(--rail-pearl); }
+.setup-card { position: relative; border-top: 4px solid var(--rail-teal); padding: clamp(24px, 3vw, 38px); }
+.setup-card-heading { border-bottom: 1px dashed var(--rail-border); margin-bottom: 24px; }
+.setup-card h2 { font: 900 27px/1.2 var(--rail-display); margin-top: 10px; margin-bottom: 22px; }
+.name-field input, .select-label input, .select-label select { background: #fff; border: 1px solid #b9cdd1; border-radius: 9px; color: var(--rail-navy); font-weight: 500; }
+.name-field input:focus, .select-label input:focus, .select-label select:focus { border-color: var(--rail-teal); box-shadow: 0 0 0 3px #426f7217; }
+.segment-control { border: 1px solid var(--rail-border); background: #eff4f4; border-radius: 10px; }
+.segment-control input:checked + span { background: var(--rail-teal); color: #fff; border-color: var(--rail-teal); box-shadow: 0 2px 6px #12384c15; }
+.avatar-option span { border-color: #c4d3d7; background: #f0f5f5; box-shadow: none; }
+.avatar-option input:checked + span { border-color: var(--rail-coral); box-shadow: 0 0 0 2px #d9685620; }
+.setup-note { color: var(--muted); font-size: 12px; font-weight: 400; }
+.primary-button, .outline-button, .country-answer { border-width: 1px; border-radius: 10px; font-family: var(--rail-body); font-weight: 700; box-shadow: 0 3px 9px #12384c14; }
+.primary-button { background: var(--rail-teal); border-color: var(--rail-teal); color: #fff; }
+.primary-button:hover { background: #31595e; transform: translateY(-1px); box-shadow: 0 5px 12px #12384c1a; }
+.primary-button:active, .outline-button:active { transform: translateY(1px); box-shadow: 0 1px 4px #12384c16; }
+.outline-button { border-color: #b2c7cd; background: var(--rail-pearl); color: var(--rail-navy); box-shadow: none; }
+.outline-button:hover { border-color: var(--rail-teal); background: #eaf2f2; }
+.lobby-heading { border-bottom: 1px solid var(--rail-border); }
+.library-tab { border: 1px solid var(--rail-border); box-shadow: none; }
+.library-tab.is-selected { background: var(--rail-navy); border-color: var(--rail-navy); }
+.empty-library { border-width: 1px; }
+
+.game-toolbar { border-bottom: 1px solid var(--rail-border); }
+.round-chip { background: #eff4f4; border: 1px solid var(--rail-border); border-radius: 10px; box-shadow: none; }
+.turn-card { background: var(--rail-pearl); border-top: 3px solid var(--rail-teal); color: var(--rail-navy); }
+.turn-card .eyebrow { color: var(--muted); font-size: 9px; letter-spacing: .13em; }
+.turn-badge { border: 1px solid #bad0d1; background: #e4eeee; color: var(--rail-teal); border-radius: 5px; font-family: var(--rail-body); font-size: 9px; letter-spacing: .12em; }
+.turn-actions .primary-button { background: var(--rail-teal); box-shadow: 0 3px 9px #12384c14; }
+.turn-actions .outline-button { border-width: 1px; }
+.city-ledger { background: var(--rail-cream); border-color: var(--rail-border); }
+.panel h2 { font-size: 24px; line-height: 1.2; }
+.player-row { border-color: #ccd9da; }.player-row.active { background: #fff; }
+.player-name { font-weight: 700; }.player-portfolio { color: var(--muted); }
+.spotlight-text strong { font-size: 18px; }.spotlight-text span { color: var(--muted); }
+.time-callout, .decision-timer { background: #faf1e5; border: 1px solid #d8bf96; color: #785d36; }
+.board-3d-stage { border: 1px solid #54767c; box-shadow: 0 12px 32px #12384c18; border-radius: 18px; }
+.board-3d-tools button, .board-3d-skip { background: #f7fbfff2; color: var(--rail-navy); border: 1px solid #bed3d9; font-family: var(--rail-body); border-radius: 9px; }
+.board-3d-caption { background: #12384ce8; border: 1px solid #d8ecf02b; border-radius: 9px; }
+.board-3d-caption strong { font: 700 17px/1.2 var(--rail-body); }.board-3d-caption span { color: #d2e3e9; }
+.board-3d-info { background: var(--rail-pearl); border: 1px solid var(--rail-border); }.board-3d-info h4 { font-family: var(--rail-display); }
+.board-3d-info-close, .board-keyboard-list summary, .board-space-buttons button { color: var(--rail-navy); }
+.board-landmark-status { background: #12384ceb; font-family: var(--rail-body); }
+.board-3d-stage:not(:has(canvas))::after { content: 'Preparing Game Station…'; color: #bcddec; font-family: var(--rail-body); }
+
+.game-dialog { color: var(--rail-navy); border-top: 3px solid var(--rail-teal); box-shadow: 0 24px 70px #12384c2b; }
+.game-dialog::backdrop { background: #12384c66; backdrop-filter: blur(3px); }
+.dialog-icon { border: 1px solid var(--rail-border); color: var(--rail-teal); background: #eaf1f1; border-radius: 10px; }
+.space-summary, .step-picker-note, .trade-party, .property-stat { border-width: 1px; background: #eff5f5; border-color: var(--rail-border); border-radius: 10px; }
+.chance-card { border: 1px dashed #90abb8; background: #edf5fa; }
+.rules-content h3 { font-size: 17px; }.rules-content section { border-color: var(--rail-border); }
+.toast { background: var(--rail-pearl); border: 1px solid var(--rail-border); border-left: 3px solid var(--rail-coral); box-shadow: 0 5px 20px #12384c15; font-weight: 600; }
+.end-city-art { background: var(--rail-teal); border-color: var(--rail-border); }
+.music-retry { color: var(--rail-navy); background: var(--rail-cream); border: 1px solid var(--rail-teal); font-family: var(--rail-body); border-radius: 10px; }
+.country-quiz-dialog, .acquisition-dialog { background: var(--rail-pearl); color: var(--rail-navy); border-color: var(--rail-border); border-radius: 20px; }
+.country-quiz-kicker, .acquisition-kicker { color: var(--rail-teal); font-family: var(--rail-body); }
+.country-quiz-dialog h2, .country-quiz-feedback, .country-quiz-reveal strong, .acquisition-dialog h2 { font-family: var(--rail-display); }
+.country-answer { font-family: var(--rail-body); }
+.country-correct { background: var(--rail-teal); border-color: #31595e; box-shadow: 0 3px 9px #12384c14; }.country-correct:hover { background: #31595e; box-shadow: 0 5px 12px #12384c1a; }
+.country-wrong { background: #fff2ed; color: #964c3e; border-color: #d8aa9e; box-shadow: 0 3px 9px #12384c10; }.country-wrong:hover { background: #fae5dc; box-shadow: 0 5px 12px #12384c16; }
+.acquisition-team strong { background: #e9f1f2; color: var(--rail-navy); }
+.acquisition-receipt { background: #eff5f5; border-color: var(--rail-border); }.acquisition-receipt > div + div { border-color: var(--rail-border); }
+.acquisition-continue { border-color: var(--rail-teal); background: var(--rail-teal); }.acquisition-continue:hover { background: #31595e; }
+.event-fx-copy p { font-family: var(--rail-body); font-weight: 700; letter-spacing: .15em; }
+.event-fx-copy strong, .event-fx-copy h2, .minigame-transition-title { font-family: var(--rail-display); letter-spacing: -.03em; }
+.event-fx-copy h2 { font-size: clamp(20px, 3.4vw, 40px); letter-spacing: .06em; }
+.minigame-transition-title { color: var(--rail-pearl); -webkit-text-stroke-color: var(--rail-navy); text-shadow: 0 4px 0 var(--rail-navy), 0 8px 24px #12384c80; }
+
+@media (max-width: 900px) {
+  .auth-screen, .setup-screen { grid-template-columns: minmax(0, 1fr); gap: 32px; align-items: start; }
+  .auth-screen .setup-copy { text-align: center; }
+  .auth-card { width: 100%; max-width: 600px; margin-inline: auto; }
+  .setup-copy { padding-bottom: 155px; }.setup-copy::after { height: 135px; max-width: 550px; left: 50%; transform: translateX(-50%); }
+  .railway-route { justify-content: center; }.setup-copy .intro { margin-inline: auto; }
+}
+@media (max-width: 600px) {
+  .topbar { height: 70px; padding-inline: 14px; }.brand strong { font-size: 15px; }.brand small { font-size: 6.5px; letter-spacing: .12em; }
+  .railway-mark.brand-mark { width: 32px; height: 36px; }.topbar-actions { gap: 0; }.topbar-actions .text-button { padding-inline: 9px; font-size: 12px; }
+  .setup-copy h1 { font-size: clamp(36px, 10vw, 54px); }.setup-copy .eyebrow { font-size: 9px; letter-spacing: .16em; }
+  .intro { font-size: 15px; }.setup-copy { padding-bottom: 115px; }.setup-copy::after { height: 105px; }
+  .railway-route { font-size: 8px; gap: 10px; }.railway-route i { width: 48px; }
+  .setup-card h2 { font-size: 23px; }.game-toolbar-actions { gap: 6px; }.game-toolbar .outline-button { font-size: 11px; padding-inline: 8px; }
+  .country-quiz-dialog h2 { font-size: clamp(29px, 7vw, 40px); }.acquisition-dialog h2 { font-size: 25px; }
+}

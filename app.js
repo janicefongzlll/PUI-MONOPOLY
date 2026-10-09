@@ -350,7 +350,7 @@ function renderNameFields(count) {
     picks.push(picks.includes(wanted) ? playerAnimals.findIndex((_, idx) => !picks.includes(idx)) : wanted);
   }
   $("player-name-fields").innerHTML = Array.from({ length: count }, (_, i) => `<div class="group-setup">
-      <label class="name-field"><span>Group ${i + 1}</span><input class="name-input" maxlength="22" value="${escapeHtml(names[i] || `Group ${i + 1}`)}" aria-label="Name for group ${i + 1}" /></label>
+      <label class="name-field"><span>Team ${i + 1}</span><input class="name-input" maxlength="22" value="${escapeHtml(names[i] || `Group ${i + 1}`)}" aria-label="Name for team ${i + 1}" /></label>
       <div class="avatar-picker" role="radiogroup" aria-label="Avatar for group ${i + 1}">${playerAnimals.map((animal, idx) => `<label class="avatar-option"><input type="radio" name="avatar-${i}" value="${idx}" aria-label="${animal.name}"${picks[i] === idx ? " checked" : ""} /><span>${avatarArt(animal)}</span></label>`).join("")}</div>
     </div>`).join("");
   bindAvatarPicker();
@@ -370,7 +370,7 @@ async function startGame(event) {
   renderAll();
   // The soundtrack is intentionally started from the player's Start PUI Fortune click.
   window.PUIOpeningBgm?.start?.();
-  log(`${player().name} opens the city. Select the ${player().animal.name} to choose a move.`);
+  log(`${player().name} departs Game Station. Select the ${player().animal.name} to choose a move.`);
   runBoardIntro();
   if (supabaseClient && authUser) await createCloudGame();
 }
@@ -505,11 +505,11 @@ function paintLibrary() {
   const games = libraryGames.filter(game => done(game) === (libraryTab === "complete"));
   if (!games.length) {
     library.innerHTML = libraryTab === "complete"
-      ? `<div class="empty-library"><span>🏁</span><h2>No finished games yet</h2><p>Call time, or play down to the last group standing, and the final table is kept here.</p></div>`
+      ? `<div class="empty-library"><span>🏁</span><h2>No completed journeys yet</h2><p>Call time, or play down to the last team standing, and the final results are kept here.</p></div>`
       : `<div class="empty-library"><span>🌍</span><h2>No games in progress</h2><p>${counts.complete ? `Every saved game has finished — open the Completed tab to see ${counts.complete === 1 ? "its final table" : "their final tables"}.` : "Create your first world-landmark game to start building a saved collection."}</p></div>`;
     return;
   }
-  library.innerHTML = games.map(game => `<article class="saved-game"><div><p class="eyebrow">${done(game) ? "Complete" : "In progress"}</p><h2>${escapeHtml(game.name)}</h2><p>${game.player_count} groups · ${done(game) ? "finished" : "saved"} ${new Date(game.updated_at).toLocaleString()}</p></div><div class="saved-game-actions"><button class="outline-button" type="button" data-delete-id="${game.id}" data-game-name="${escapeHtml(game.name)}">Delete</button><button class="primary-button" type="button" ${done(game) ? `data-results-id="${game.id}"` : `data-game-id="${game.id}"`} data-game-name="${escapeHtml(game.name)}">${done(game) ? "View" : "Resume"}</button></div></article>`).join("");
+  library.innerHTML = games.map(game => `<article class="saved-game"><div><p class="eyebrow">${done(game) ? "Final stop" : "Journey in progress"}</p><h2>${escapeHtml(game.name)}</h2><p>${game.player_count} teams · ${done(game) ? "finished" : "saved"} ${new Date(game.updated_at).toLocaleString()}</p></div><div class="saved-game-actions"><button class="outline-button" type="button" data-delete-id="${game.id}" data-game-name="${escapeHtml(game.name)}">Delete</button><button class="primary-button" type="button" ${done(game) ? `data-results-id="${game.id}"` : `data-game-id="${game.id}"`} data-game-name="${escapeHtml(game.name)}">${done(game) ? "View" : "Resume"}</button></div></article>`).join("");
   library.querySelectorAll("[data-game-id]").forEach(button => button.addEventListener("click", () => { enterGameFullscreen(); loadCloudGame(button.dataset.gameId); }));
   library.querySelectorAll("[data-results-id]").forEach(button => button.addEventListener("click", () => showGameResults(button.dataset.resultsId, button.dataset.gameName)));
   library.querySelectorAll("[data-delete-id]").forEach(button => button.addEventListener("click", () => deleteCloudGame(button.dataset.deleteId, button.dataset.gameName)));
@@ -542,7 +542,7 @@ function finalStandings(snapshot) {
 
 // Shared by the end-of-game screen and the saved results view so the two cannot drift.
 function standingsHtml(standings) {
-  return standings.map((p, i) => `<div class="score-row ${p.out ? "score-out" : ""}"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>${p.out ? "Bankrupt — out of the game" : `Cash ${money(p.cash)} · City value ${money(p.propertyValue)}`}</small></div><strong class="score-wealth">${p.out ? "Out" : money(p.wealth)}</strong></div>`).join("");
+  return standings.map((p, i) => `<div class="score-row ${p.out ? "score-out" : ""}"><span class="score-rank">${String(i + 1).padStart(2, "0")}</span><span class="player-color" style="background:${p.color}"></span><div><strong>${escapeHtml(p.name)}</strong><small>${p.out ? "Bankrupt — out of the game" : `Cash ${money(p.cash)} · Landmark value ${money(p.propertyValue)}`}</small></div><strong class="score-wealth">${p.out ? "Out" : money(p.wealth)}</strong></div>`).join("");
 }
 
 async function showGameResults(gameId, gameName) {
@@ -555,7 +555,7 @@ async function showGameResults(gameId, gameName) {
   const standings = finalStandings(data?.game_state);
   if (!standings.length) { body.innerHTML = `<p class="empty-property">This game has no saved result.</p>`; return; }
   const winner = standings.find(item => !item.out) || standings[0];
-  body.innerHTML = `<p class="dialog-copy">${escapeHtml(winner.name)} took the city with ${money(winner.wealth)} in total wealth.</p><div class="scoreboard">${standingsHtml(standings)}</div>`;
+  body.innerHTML = `<p class="dialog-copy">${escapeHtml(winner.name)} finished the journey in first place with ${money(winner.wealth)} in total wealth.</p><div class="scoreboard">${standingsHtml(standings)}</div>`;
 }
 
 async function deleteCloudGame(gameId, gameName) {
@@ -792,20 +792,20 @@ function renderTurn() {
     $("choose-steps-button").addEventListener("click", openStepChooser);
     if (canUpgrade) $("develop-button").addEventListener("click", () => developProperty(here));
   } else if (state.phase === "decision") {
-    prompt.innerHTML = `<strong>Resolve your city decision.</strong><span>Check the city card for your next step.</span>`;
+    prompt.innerHTML = `<strong>A decision at this stop.</strong><span>Check the game card for your next step.</span>`;
     actions.innerHTML = `<button class="outline-button" type="button" id="decision-reminder">Show decision</button>`;
     $("decision-reminder").addEventListener("click", () => $("decision-dialog").showModal());
   } else {
     prompt.innerHTML = state.pending?.kind === "movement"
       ? `<strong>${escapeHtml(p.name)} is on the move.</strong><span>Arriving at ${escapeHtml(spaces[state.pending.route.at(-1) ?? p.position].name)}…</span>`
-      : `<strong>Wrapping up the turn.</strong><span>The city ledger is updating.</span>`;
+      : `<strong>Wrapping up the turn.</strong><span>The team ledger is updating.</span>`;
     actions.innerHTML = "";
   }
 }
 
 function renderPlayers() {
   const turn = player();
-  $("turn-spotlight").innerHTML = `<div class="spotlight-avatar" style="--avatar-color:${turn.color}">${avatarArt(turn.animal)}</div><div class="spotlight-text"><p class="eyebrow">Now playing</p><strong>${escapeHtml(turn.name)}</strong><span>${turn.animal.name}</span></div>`;
+  $("turn-spotlight").innerHTML = `<div class="spotlight-avatar" style="--avatar-color:${turn.color}">${avatarArt(turn.animal)}</div><div class="spotlight-text"><p class="eyebrow">Team on the move</p><strong>${escapeHtml(turn.name)}</strong><span>${turn.animal.name}</span></div>`;
   $("player-list").innerHTML = state.players.map(p => {
     const owned = properties.filter(prop => prop.owner === p.id); const upgrades = owned.filter(prop => prop.building).length;
     return `<div class="player-row ${p.out ? "is-out" : ""} ${p.id === state.currentPlayer && !p.out ? "active" : ""}"><span class="player-avatar" style="--avatar-color:${p.color}" title="${escapeHtml(p.animal.name)}">${avatarArt(p.animal)}</span><div><div class="player-name">${escapeHtml(p.name)}</div><div class="player-portfolio">${p.out ? "Bankrupt — out of the game" : `${owned.length} properties${upgrades ? ` · ${upgrades} upgrade${upgrades === 1 ? "" : "s"}` : ""}${p.jailPasses ? ` · ${p.jailPasses} pass` : ""}`}</div></div><strong class="player-cash">${p.out ? "Out" : money(p.cash)}</strong></div>`;
@@ -911,7 +911,7 @@ function finishMovement(p, pending) {
   if (completion.kind === "resolve") { resolveSpace(p, pending.options); return; }
   if (completion.kind === "chance-start") { adjustCash(p, 200); showCashEffect(200, "START BONUS", p); log(`${p.name} advanced to Start and collected $200.`); }
   if (completion.kind === "transit-pass") log(`${p.name} used a free Transit pass to ${spaces[p.position].name}.`);
-  if (completion.kind === "transit") log(`${p.name} rode the city line for $40.`);
+  if (completion.kind === "transit") log(`${p.name} rode the railway for $40.`);
   if (completion.kind === "jail") { p.jailed = true; log(`${p.name} was sent to Jail by ${completion.source}.`); toast(`${p.name} is in Jail.`); }
   renderBoard(); renderPlayers(); endTurn();
 }
@@ -1048,7 +1048,7 @@ function showPurchaseDecision(p, prop) {
   if (affordable) actions.push({ label: `Purchase Property · ${money(prop.price)}`, primary: true, action: () => { closeDecision(); showCountryQuiz(p, prop); } });
   actions.push({ label: affordable ? "Pass on this property" : "Leave it — not enough cash", primary: !affordable, action: () => { log(`${p.name} left ${prop.name} open for another group.`); closeDecision(); endTurn(); } });
   const timeout = { timeLimit: DECISION_SECONDS, timeoutNote: "the block stays open", onTimeout: () => { log(`${p.name} ran out of time and left ${prop.name} open for another group.`); toast(`Time up — ${prop.name} not bought.`); closeDecision(); endTurn(); } };
-  showDecision({ ...timeout, icon: "i-build", kicker: "Open city block", title: `${prop.name} is available`, copy: affordable ? `Buy this address to add it to ${p.name}’s city portfolio. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.` : `${p.name} holds ${money(p.cash)} and cannot cover the ${money(prop.price)} price. The block stays open.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions });
+  showDecision({ ...timeout, icon: "i-build", kicker: "Next stop / available Landmark", title: `${prop.name} is available`, copy: affordable ? `Add this Landmark to ${p.name}’s portfolio. Guess its country to complete the purchase. You can add a City Upgrade on a later turn for ${money(buildingCost(prop))}.` : `${p.name} holds ${money(p.cash)} and cannot cover the ${money(prop.price)} price. The Landmark stays available.`, details: `<div class="space-summary" style="--detail-color:${prop.color}"><i class="swatch"></i><div><strong>${escapeHtml(prop.name)}</strong><span>Base rent ${money(prop.rent)} · upgraded rent ${money(prop.rent * 2)}</span></div><strong class="money">${money(prop.price)}</strong></div>`, actions });
 }
 
 function completeLandmarkPurchase(p, prop) {
@@ -1082,7 +1082,7 @@ function drawChance(p) {
 function showChanceCard(p, index) {
   const card = chanceCards[index];
   state.phase = "decision"; setPending({ kind: "chance", player: p.id, card: index }); renderTurn();
-  showDecision({ icon: "i-card", kicker: "City chance", title: card.title, copy: card.text, details: `<div class="chance-card"><strong>CHANCE CARD</strong><p>${escapeHtml(card.text)}</p></div>`, actions: [{ label: "Resolve card", primary: true, action: () => { closeDecision(); applyChance(p, card); } }] });
+  showDecision({ icon: "i-card", kicker: "Along the way / Chance", title: card.title, copy: card.text, details: `<div class="chance-card"><strong>CHANCE CARD</strong><p>${escapeHtml(card.text)}</p></div>`, actions: [{ label: "Resolve card", primary: true, action: () => { closeDecision(); applyChance(p, card); } }] });
 }
 
 function applyChance(p, card) {
@@ -1112,7 +1112,7 @@ function showStationDecision(p, target) {
   const affordable = p.cash >= 40;
   const actions = [{ label: "Stay here", primary: !affordable, action: () => { log(`${p.name} stayed at the Transit Station.`); closeDecision(); endTurn(); } }];
   if (affordable) actions.push({ label: "Ride for $40", primary: true, action: () => { adjustCash(p, -40); showTransitEffect(); closeDecision(); return travelPlayer(p, [target], { collectStart: false, direction: 1 }, { kind: "transit" }); } });
-  showDecision({ icon: "i-train", kicker: "Transit Station", title: "Catch the city line?", copy: affordable ? `Pay $40 to travel directly to the other Transit Station. Your turn ends when you arrive.` : `The fare is $40 and ${p.name} holds ${money(p.cash)}. You will have to stay put.`, details: `<div class="space-summary"><i class="swatch" style="background:var(--violet)"></i><div><strong>${spaces[target].name}</strong><span>A fast route across the city.</span></div><strong class="money">$40</strong></div>`, actions });
+  showDecision({ icon: "i-train", kicker: "Transit Station / departure", title: "All aboard the railway?", copy: affordable ? `Pay $40 to travel directly to the other Transit Station. Your turn ends when you arrive.` : `The fare is $40 and ${p.name} holds ${money(p.cash)}. You will have to stay put.`, details: `<div class="space-summary"><i class="swatch" style="background:var(--violet)"></i><div><strong>${spaces[target].name}</strong><span>Your next railway stop.</span></div><strong class="money">$40</strong></div>`, actions });
 }
 
 function sendToJail(p, source) { showJailEffect(); return travelPlayer(p, [cornerAt[1]], { collectStart: false, direction: 1 }, { kind: "jail", source }); }
@@ -1262,8 +1262,8 @@ function endGame() {
     .sort((a, b) => (Boolean(a.out) === Boolean(b.out) ? b.wealth - a.wealth : a.out ? 1 : -1));
   const winner = scores[0];
   $("winner-message").textContent = activePlayers().length === 1
-    ? `${winner.name} is the last group standing and takes the city with ${money(winner.wealth)} in total wealth.`
-    : `${winner.name} takes the city with ${money(winner.wealth)} in total wealth.`;
+    ? `${winner.name} is the last team standing and finishes first with ${money(winner.wealth)} in total wealth.`
+    : `${winner.name} finishes the journey in first place with ${money(winner.wealth)} in total wealth.`;
   $("scoreboard").innerHTML = standingsHtml(scores);
   saveGame(false, "complete");
   $("end-dialog").showModal();
