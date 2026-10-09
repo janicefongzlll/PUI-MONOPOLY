@@ -1,0 +1,327 @@
+/* A self-contained paper rulebook. No board, game controls or other dialogs are styled here. */
+.rulebook {
+  --rb-ink: #304c3e;
+  --rb-muted: #667769;
+  --rb-sage: #afc3ac;
+  --rb-cream: #fbf7ed;
+  --rb-red: #b86c5d;
+  width: min(1180px, calc(100vw - 40px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--rb-ink);
+  overflow: visible;
+  box-shadow: none;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.rulebook::backdrop { background: #18332dcc; backdrop-filter: blur(5px); }
+.rulebook[open] { animation: rb-open 320ms cubic-bezier(.2,.8,.25,1) both; }
+.rulebook .rulebook-shell { display: grid; grid-template-columns: 145px minmax(0, 1fr); filter: drop-shadow(0 24px 28px #071d2450); }
+.rulebook-spine { display: flex; flex-direction: column; padding-top: 31px; }
+.rulebook-spine-label { padding-left: 16px; font-size: 10px; color: #e1e8d9; letter-spacing: .21em; font-weight: 700; }
+.rulebook-main-tabs { display: grid; gap: 12px; margin-top: 37px; }
+.rulebook .rb-main-tab { position: relative; display: grid; justify-items: start; gap: 9px; padding: 16px 18px; min-height: 151px; border: 1px solid #839b80; border-right: none; border-radius: 17px 0 0 17px; background: #8faa91; color: #2c493b; text-align: left; box-shadow: inset -8px 0 14px #31482b15, 0 5px 0 #57715d; transition: transform 200ms, background 200ms; }
+.rulebook .rb-main-tab svg { width: 48px; height: 48px; }
+.rulebook .rb-main-tab span { font-size: 16px; font-weight: 800; line-height: 1.35; letter-spacing: .04em; }
+.rulebook .rb-main-tab small { position: absolute; top: 18px; right: 16px; font-size: 10px; opacity: .65; }
+.rulebook .rb-main-tab[aria-selected="true"] { background: #dce6d4; border-color: #dce6d4; z-index: 2; transform: translateX(6px); box-shadow: 0 6px 0 #8aa181, -3px 0 10px #10201715; }
+.rulebook .rb-main-tab[data-book="minigames"] { background: #bd8273; color: #fff5e7; border-color: #a56759; box-shadow: inset -8px 0 14px #59322c15, 0 5px 0 #875244; }
+.rulebook .rb-main-tab[data-book="minigames"][aria-selected="true"] { background: #ecd5c8; color: #775344; border-color: #ecd5c8; box-shadow: 0 6px 0 #ae7c67; }
+.rulebook-spine-bottom { margin-top: auto; padding: 24px 16px; font-size: 9px; line-height: 1.8; letter-spacing: .12em; color: #d4e0cf; }
+.rulebook-pages { position: relative; z-index: 1; padding: 22px 26px 14px; background: var(--rb-sage); border: 1px solid #d4dfc8; border-radius: 20px 20px 20px 6px; box-shadow: 0 7px 0 #758b72, 0 11px 0 #c0c5b0, inset 5px 0 12px #46624918; }
+.rulebook-pages::before { content: ''; position: absolute; inset: 12px auto 12px 9px; width: 3px; border-left: 1px solid #6a856560; border-right: 1px solid #ecf3df55; pointer-events: none; }
+.rulebook-header { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding-bottom: 21px; }
+.rulebook .rb-overline { display: block; font-size: 10px; font-weight: 700; line-height: 1.5; letter-spacing: .16em; color: var(--rb-muted); }
+.rulebook-header .rb-overline { color: #3c5848; font-size: 9px; }
+.rulebook #rules-title { margin: 6px 0 0; font: 700 clamp(18px, 2vw, 23px)/1.2 Georgia, 'Times New Roman', serif; letter-spacing: -.02em; }
+.rulebook #rules-title span { color: var(--rb-red); }
+.rulebook .rb-close { flex: 0 0 34px; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #36544844; border-radius: 50%; background: #ffffff25; color: var(--rb-ink); transition: background 150ms, transform 150ms; }
+.rulebook .rb-close svg { width: 15px; height: 15px; }
+.rulebook .rb-close:hover { background: #f9f5e5; transform: rotate(5deg); }
+.rb-sub-tabs { display: flex; gap: 7px; padding: 0 14px; }
+.rulebook .rb-sub-tabs button { display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 43px; padding: 12px 23px 11px; border: 1px solid #91a488; border-bottom: 0; border-radius: 10px 10px 0 0; background: #c9d7bd; color: #54664f; font-size: 11px; font-weight: 800; letter-spacing: .06em; box-shadow: inset 0 -4px 5px #304c3e07; transition: transform 180ms, background 180ms; }
+.rulebook .rb-sub-tabs button span { color: #85927b; font-size: 10px; }
+.rulebook .rb-sub-tabs button[aria-selected="true"] { position: relative; z-index: 2; color: var(--rb-ink); background: var(--rb-cream); border-color: #f5f0e2; transform: translateY(-3px); box-shadow: 0 4px 0 var(--rb-cream), 0 -3px 8px #435a3c0d; }
+.rulebook .rb-sub-tabs button[aria-selected="true"] span { color: var(--rb-red); }
+.rulebook .rb-mini-tabs { gap: 5px; padding: 0 5px; }
+.rulebook .rb-mini-tabs button { gap: 5px; flex: 1; padding-inline: 8px; font-size: 9px; white-space: nowrap; }
+.rb-paper { position: relative; background: var(--rb-cream); border: 1px solid #fffcf6; border-radius: 13px; box-shadow: 0 3px 0 #dedfc8, 0 6px 0 #eae8d7, 0 10px 15px #304c3e15; overflow: hidden; }
+.rb-paper::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 35px, #64573403 36px); }
+.rb-page { position: relative; min-height: 480px; padding: 21px 30px 19px; animation: rb-page-in 250ms ease-out both; outline-offset: -5px; }
+.rb-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.rulebook .rb-page h3 { margin: 5px 0 0; font: 700 clamp(24px, 2.8vw, 34px)/1.15 Georgia, 'Times New Roman', serif; letter-spacing: -.035em; color: var(--rb-ink); }
+.rb-stamp { flex-shrink: 0; padding: 9px 12px; border: 1px solid #b86c5d65; border-radius: 7px; color: var(--rb-red); text-align: center; font-size: 9px; letter-spacing: .12em; line-height: 1.8; transform: rotate(5deg); }
+.rb-stamp b { font-size: 10px; }
+.rb-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+.rb-step { display: flex; gap: 14px; align-items: center; padding: 16px 0; border-top: 1px solid #d4d9c8; min-width: 0; }
+.rb-art { width: 78px; height: 78px; flex-shrink: 0; }
+.rb-step-number { display: block; color: var(--rb-muted); font-size: 9px; font-weight: 700; letter-spacing: .12em; line-height: 1.5; }
+.rulebook .rb-page h4 { margin: 5px 0 6px; font: 700 18px/1.2 Arial, Helvetica, sans-serif; letter-spacing: -.025em; }
+.rulebook .rb-page p { margin: 0; color: var(--rb-muted); font-size: 15px; line-height: 1.5; }
+.rulebook .rb-page p strong { color: var(--rb-ink); font-weight: 700; }
+.rb-winning { display: flex; align-items: center; gap: 18px; margin-top: 16px; padding: 13px 20px; border: 1px solid #365448; border-radius: 12px; background: #365448; color: #fbf5e5; }
+.rb-winning .rb-art { width: 64px; height: 64px; }
+.rulebook .rb-winning h4 { font-size: 21px; }
+.rulebook .rb-winning .rb-step-number { color: #bac9b2; }
+.rulebook .rb-winning p { color: #e1e7d5; font-size: 15px; }
+.rb-winning p span { display: inline-block; margin: 0 7px; color: #d9bd84; }
+.rb-winning-star { margin-left: auto; font-size: 38px; color: #dbc28e; }
+.rb-page-mark { color: #b86c5d88; font: italic 40px/1 Georgia, serif; }
+.rb-features { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.rb-feature { padding: 0 18px 8px; border-right: 1px solid #d4d9c8; }
+.rb-feature:first-child { padding-left: 0; }
+.rb-feature:last-child { border-right: 0; padding-right: 0; }
+.rb-feature .rb-art { width: 80px; height: 80px; margin-bottom: 3px; }
+.rulebook .rb-feature h4 { font-size: 21px; margin: 7px 0 8px; }
+.rb-feature ul { margin: 7px 0 0; padding-left: 18px; color: var(--rb-muted); font-size: 15px; line-height: 1.5; }
+.rb-feature li::marker { color: #b86c5d; }
+.rb-ticket { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding: 10px 12px; border: 1px dashed #96a98a; border-radius: 5px; color: #536e4b; background: #eaf0dc; font-size: 10px; font-weight: 700; letter-spacing: .06em; }
+.rb-ticket span { font-size: 17px; }
+.rb-outcomes { margin-top: 12px; border-top: 1px solid #d4d9c8; padding-top: 12px; }
+.rb-outcomes > .rb-overline { margin-bottom: 10px; }
+.rb-outcome-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.rb-outcome-grid > div { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid #ddd9c9; background: #f1ecdd; border-radius: 9px; }
+.rb-outcome-icon { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #a79f87; border-radius: 50%; color: #71674c; font: 700 20px/1 Georgia, serif; }
+.rulebook .rb-outcome-grid p { display: grid; gap: 3px; line-height: 1.2; }
+.rulebook .rb-outcome-grid p strong { font-size: 12px; letter-spacing: .04em; }
+.rb-outcome-grid small { font-size: 13px; }
+.rb-outcome-grid .rb-outcome-win { background: #e6eddd; border-color: #cad8be; }
+.rb-outcome-win .rb-outcome-icon { color: #54744b; border-color: #90a885; }
+.rb-outcome-grid .rb-outcome-lose { background: #f2e2d9; border-color: #dfc2b6; }
+.rb-outcome-lose .rb-outcome-icon { color: #a45d4c; border-color: #c4907f; }
+.rulebook-footer { display: flex; justify-content: space-between; gap: 12px; padding: 17px 4px 0; color: #425e47; font-size: 8px; font-weight: 700; letter-spacing: .12em; }
+.rulebook-footer i { margin: 0 7px; font-style: normal; color: var(--rb-red); }
+.rb-coming { display: flex; min-height: 290px; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 30px; text-align: center; }
+.rb-coming-art { position: relative; width: 140px; height: 140px; display: grid; place-items: center; margin-bottom: 17px; border: 1px solid #d3dcc8; border-radius: 50%; background: #eaf0e155; }
+.rb-coming-art svg { width: 105px; height: 105px; transform: rotate(-7deg); }
+.rb-coming-art > span { position: absolute; top: 14px; right: 11px; color: #b86c5d; font-size: 22px; }
+.rulebook .rb-coming h4 { margin: 10px 0 14px; font: italic 32px/1.2 Georgia, serif; color: #536b50; }
+.rb-coming-line { width: 42px; height: 2px; border-radius: 3px; background: #c28b76; }
+.rulebook button { cursor: pointer; }
+.rulebook button:focus-visible, .rulebook [role="tabpanel"]:focus-visible { outline: 3px solid #b66c53; outline-offset: 3px; }
+.rulebook [hidden] { display: none !important; }
+@keyframes rb-open { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes rb-page-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@media (min-width: 1600px) and (min-height: 850px) {
+  .rulebook { width: min(1420px, calc(100vw - 100px)); }
+  .rulebook .rulebook-shell { grid-template-columns: 165px minmax(0,1fr); }
+  .rulebook-pages { padding: 30px 36px 22px; }
+  .rb-page { min-height: 600px; padding: 35px 40px; }
+  .rulebook .rb-page h3 { font-size: 40px; }
+  .rulebook .rb-page h4 { font-size: 23px; }
+  .rulebook .rb-page p, .rb-feature ul { font-size: 19px; }
+  .rb-step { padding: 22px 0; gap: 20px; }
+  .rb-art { width: 94px; height: 94px; }
+  .rb-feature .rb-art { width: 115px; height: 115px; }
+  .rulebook .rb-sub-tabs button { font-size: 13px; min-height: 50px; }
+  .rb-step-number, .rulebook .rb-overline { font-size: 12px; }
+  .rb-outcomes { margin-top: 26px; }
+  .rb-outcome-grid small { font-size: 17px; }
+  .rb-coming { min-height: 440px; }
+}
+@media (max-height: 700px) and (min-width: 801px) {
+  .rulebook { overflow-y: auto; padding-bottom: 12px; }
+  .rb-page { min-height: 360px; padding-block: 18px; }
+  .rb-step { padding-block: 10px; }
+  .rb-page-heading { margin-bottom: 14px; }
+  .rb-art { width: 65px; height: 65px; }
+  .rulebook-header { padding-bottom: 15px; }
+  .rb-winning { margin-top: 12px; padding-block: 8px; }
+}
+@media (max-width: 800px) {
+  .rulebook { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; padding-bottom: 12px; }
+  .rulebook .rulebook-shell { grid-template-columns: 90px minmax(0,1fr); }
+  .rulebook-spine-label { font-size: 8px; padding-left: 6px; letter-spacing: .08em; }
+  .rulebook .rb-main-tab { padding: 12px 10px; min-height: 129px; }
+  .rulebook .rb-main-tab span { font-size: 11px; }
+  .rulebook .rb-main-tab small { display: none; }
+  .rulebook-spine-bottom { padding-left: 7px; font-size: 7px; }
+  .rulebook-pages { padding: 19px 16px 12px; }
+  .rb-page { padding: 20px; }
+  .rb-steps { grid-template-columns: 1fr; }
+  .rb-stamp { display: none; }
+  .rb-features { grid-template-columns: 1fr; gap: 15px; }
+  .rb-feature, .rb-feature:first-child, .rb-feature:last-child { border-right: 0; border-bottom: 1px solid #d4d9c8; padding: 0 0 15px; }
+  .rb-feature .rb-art { float: right; width: 75px; height: 75px; margin-left: 10px; }
+  .rb-outcome-grid { grid-template-columns: 1fr; }
+  .rulebook .rb-sub-tabs button { flex: 1; font-size: 9px; padding: 10px 8px; gap: 6px; }
+  .rb-sub-tabs { padding: 0 3px; }
+  .rb-mini-tabs { flex-wrap: wrap; gap: 6px; padding-bottom: 7px; }
+  .rulebook .rb-mini-tabs button { flex: 1 0 28%; border-bottom: 1px solid #91a488; border-radius: 7px; }
+  .rulebook-footer { font-size: 7px; letter-spacing: .03em; }
+  .rulebook-footer > span:first-child { max-width: 60%; }
+  .rb-winning-star { display: none; }
+  .rb-winning { padding: 12px; gap: 8px; }
+  .rb-winning .rb-art { width: 50px; height: 50px; }
+  .rulebook .rb-winning h4 { font-size: 18px; }
+}
+@media (max-width: 480px) {
+  .rulebook .rulebook-shell { grid-template-columns: 65px minmax(0,1fr); }
+  .rulebook-spine-label, .rulebook-spine-bottom { display: none; }
+  .rulebook-main-tabs { margin-top: 53px; gap: 10px; }
+  .rulebook .rb-main-tab { padding: 12px 7px; min-height: 110px; }
+  .rulebook .rb-main-tab svg { width: 40px; height: 40px; }
+  .rulebook .rb-main-tab span { font-size: 9px; }
+  .rulebook-pages { padding: 16px 11px 12px; border-radius: 14px 14px 14px 3px; }
+  .rulebook-header { gap: 8px; padding-bottom: 15px; }
+  .rulebook #rules-title { font-size: 17px; }
+  .rulebook-header .rb-overline { font-size: 7px; letter-spacing: .08em; }
+  .rulebook .rb-close { width: 28px; height: 28px; flex-basis: 28px; }
+  .rb-page { padding: 18px 14px; }
+  .rulebook .rb-page h3 { font-size: 25px; }
+  .rulebook .rb-overline { font-size: 8px; }
+  .rb-step { gap: 8px; align-items: start; }
+  .rb-step .rb-art { width: 53px; height: 53px; }
+  .rulebook .rb-page h4 { font-size: 16px; }
+  .rulebook .rb-page p, .rb-feature ul { font-size: 14px; }
+  .rb-step-number { font-size: 8px; }
+  .rulebook .rb-sub-tabs button { font-size: 8px; gap: 4px; }
+  .rb-coming-art { width: 110px; height: 110px; }
+  .rb-coming-art svg { width: 90px; height: 90px; }
+  .rb-page-mark { font-size: 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rulebook[open], .rulebook .rb-page { animation: none; }
+  .rulebook button { transition: none; }
+}
+
+/* Event-screen edition: important rules fill the available space, not decoration. */
+.rulebook { --rb-ink: #253e30; --rb-muted: #3e5645; width: calc(100vw - 32px); max-width: 2200px; height: calc(100dvh - 36px); max-height: none; padding: 0; }
+.rulebook .rb-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.rulebook .rulebook-shell { height: 100%; grid-template-columns: clamp(125px, 9.5vw, 185px) minmax(0,1fr); }
+.rulebook-spine { padding-top: 76px; }
+.rulebook-main-tabs { margin: 0; gap: 18px; }
+.rulebook .rb-main-tab { width: 100%; min-height: clamp(170px, 22vh, 260px); padding: 20px 14px; gap: 16px; }
+.rulebook .rb-main-tab svg { width: clamp(54px, 4.5vw, 86px); height: clamp(54px, 4.5vw, 86px); }
+.rulebook .rb-main-tab span { font-size: clamp(17px, 1.5vw, 29px); letter-spacing: .01em; }
+.rulebook .rb-main-tab small { display: none; }
+.rulebook .rb-main-tab[data-book="minigames"] { background: #a96555; color: #fffaf0; }
+.rulebook .rb-main-tab[data-book="minigames"][aria-selected="true"] { background: #ecd5c8; color: #654335; }
+.rulebook-pages { height: 100%; min-height: 0; padding: 16px 16px 18px; }
+.rulebook-header { height: 0; padding: 0; }
+.rulebook .rb-close { position: absolute; top: 18px; right: 18px; z-index: 5; width: 48px; height: 48px; background: #ecf0df; border-color: #36544877; }
+.rulebook .rb-close svg { width: 22px; height: 22px; }
+.rb-section { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.rb-sub-tabs { padding: 0 62px 0 12px; flex: 0 0 62px; gap: 10px; }
+.rulebook .rb-sub-tabs button { padding: 13px 26px; font-size: clamp(18px,1.45vw,28px); letter-spacing: .02em; color: #30492d; }
+.rulebook .rb-sub-tabs button span { display: none; }
+.rulebook .rb-mini-tabs { gap: 6px; padding-left: 4px; }
+.rulebook .rb-mini-tabs button { gap: 6px; padding-inline: 8px; font-size: clamp(13px,1.1vw,21px); }
+.rulebook .rb-mini-tabs button span { display: inline; }
+.rb-paper { flex: 1; min-height: 0; overflow: auto; }
+.rb-page { height: 100%; min-height: 0; padding: clamp(20px,2vw,38px); }
+#rb-page-how, #rb-page-special { display: flex; flex-direction: column; }
+.rb-steps { flex: 1; min-height: 0; grid-template-rows: repeat(2,minmax(0,1fr)); gap: clamp(16px,1.5vw,28px); }
+.rb-step { padding: clamp(15px,1.5vw,28px); gap: clamp(12px,1.2vw,23px); border: 1px solid #ced7bf; border-radius: 14px; background: #f1f2e4; }
+.rb-art { width: clamp(80px,7.5vw,144px); height: clamp(80px,7.5vw,144px); }
+.rulebook .rb-page h4 { margin: 0 0 12px; font-size: clamp(27px,2.2vw,42px); font-weight: 800; line-height: 1.15; }
+.rulebook .rb-page p { font-size: clamp(22px,1.7vw,33px); line-height: 1.35; }
+.rulebook .rb-page p strong { font-weight: 800; }
+.rb-winning { margin-top: clamp(16px,1.5vw,28px); padding: 20px 28px; gap: 24px; background: #2d4c36; }
+.rb-winning .rb-art { width: clamp(75px,6vw,115px); height: clamp(75px,6vw,115px); }
+.rulebook .rb-winning h4 { font-size: clamp(28px,2.3vw,44px); color: #fff9e9; }
+.rulebook .rb-winning p { font-size: clamp(22px,1.65vw,32px); color: #edf1df; }
+#rb-page-special { display: grid; grid-template-rows: repeat(2,minmax(0,1fr)); gap: clamp(20px,2vw,38px); }
+.rb-features { min-height: 0; grid-template-columns: repeat(2,minmax(0,1fr)); gap: clamp(20px,2vw,38px); }
+.rulebook .rb-feature { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: clamp(16px,1.5vw,28px); padding: clamp(20px,2vw,38px); border: 1px solid #ced7bf; border-radius: 14px; background: #f1f2e4; }
+.rb-feature > div { min-width: 0; }
+.rb-feature .rb-art { width: clamp(90px,9vw,170px); height: clamp(90px,9vw,170px); margin: 0; }
+.rb-challenge-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.6fr); gap: clamp(20px,2vw,38px); min-height: 0; }
+.rb-challenge-row .rb-art { width: clamp(70px,6vw,115px); height: clamp(70px,6vw,115px); }
+.rulebook .rb-feature h4 { font-size: clamp(30px,2.5vw,48px); margin: 0 0 18px; }
+.rb-feature ul { margin: 0; padding-left: 26px; font-size: clamp(22px,1.7vw,33px); line-height: 1.55; }
+.rb-feature li strong { color: var(--rb-ink); }
+.rb-outcomes { margin: 0; border: 0; padding: 0; min-width: 0; }
+.rb-outcome-grid { height: 100%; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.rb-outcome-grid > div { flex-direction: column; justify-content: center; text-align: center; padding: clamp(18px,1.6vw,30px); gap: 24px; }
+.rb-outcome-icon { flex-shrink: 0; width: clamp(42px,3.4vw,65px); height: clamp(42px,3.4vw,65px); font-size: clamp(26px,2.2vw,42px); }
+.rulebook .rb-outcome-grid p { gap: 8px; }
+.rulebook .rb-outcome-grid p strong, .rb-outcome-grid small { font-size: clamp(22px,1.7vw,33px); }
+.rb-outcome-grid small { color: var(--rb-ink); }
+.rb-coming { height: 100%; min-height: 0; padding: 0; gap: 32px; }
+.rb-coming-art { width: clamp(180px,16vw,305px); height: clamp(180px,16vw,305px); margin: 0; background: #e9efdd; }
+.rb-coming-art svg { width: 80%; height: 80%; }
+.rulebook .rb-coming h4 { margin: 0; font: 800 clamp(36px,3.5vw,67px)/1.15 Arial, Helvetica, sans-serif; }
+@media (max-height: 760px) and (min-width: 801px) {
+  .rb-page { padding: 20px; }
+  .rb-step { padding: 16px; }
+  .rb-steps { gap: 16px; }
+  .rb-winning { padding: 14px 22px; margin-top: 16px; }
+  .rb-feature .rb-art { width: 95px; height: 95px; }
+  .rb-challenge-row .rb-art { width: 70px; height: 70px; }
+  .rulebook .rb-feature { padding: 20px; gap: 16px; }
+  #rb-page-special, .rb-features, .rb-challenge-row { gap: 16px; }
+  .rb-outcome-grid > div { padding: 18px; gap: 12px; }
+}
+@media (max-width: 1050px) and (min-width: 801px) {
+  .rulebook .rulebook-shell { grid-template-columns: 108px minmax(0,1fr); }
+  .rulebook .rb-main-tab span { font-size: 15px; }
+  .rb-art { width: 66px; height: 66px; }
+  .rulebook .rb-page h4 { font-size: 24px; }
+  .rulebook .rb-page p, .rb-feature ul { font-size: 20px; }
+  .rulebook .rb-feature h4 { font-size: 27px; }
+  .rulebook .rb-mini-tabs button { font-size: 11px; }
+  .rb-outcome-icon { width: 32px; height: 32px; font-size: 22px; }
+  .rulebook .rb-outcome-grid p strong, .rb-outcome-grid small { font-size: 18px; }
+}
+@media (max-width: 800px) {
+  .rulebook { width: calc(100vw - 20px); height: auto; max-height: calc(100dvh - 24px); overflow-y: auto; padding-bottom: 10px; }
+  .rulebook .rulebook-shell { height: auto; grid-template-columns: 80px minmax(0,1fr); }
+  .rulebook-spine { padding-top: 74px; }
+  .rulebook-main-tabs { gap: 12px; }
+  .rulebook .rb-main-tab { padding: 12px 8px; min-height: 125px; gap: 10px; }
+  .rulebook .rb-main-tab svg { width: 48px; height: 48px; }
+  .rulebook .rb-main-tab span { font-size: 11px; }
+  .rulebook-pages { height: auto; padding: 14px 10px 16px; }
+  .rulebook .rb-close { width: 36px; height: 36px; right: 12px; top: 17px; }
+  .rulebook .rb-close svg { width: 17px; height: 17px; }
+  .rb-sub-tabs { padding: 0 43px 0 3px; gap: 6px; flex-basis: 49px; }
+  .rulebook .rb-sub-tabs button { padding: 10px 8px; font-size: 11px; }
+  .rb-section { height: auto; }
+  .rb-paper { overflow: visible; }
+  .rb-page { height: auto; padding: 18px; }
+  .rb-steps { grid-template-rows: none; gap: 12px; }
+  .rb-step { padding: 15px 10px; gap: 12px; }
+  .rb-art { width: 65px; height: 65px; }
+  .rulebook .rb-page h4 { font-size: 24px; margin-bottom: 8px; }
+  .rulebook .rb-page p, .rb-feature ul { font-size: 19px; }
+  .rb-winning { padding: 16px 12px; gap: 12px; margin-top: 14px; }
+  .rb-winning .rb-art { width: 56px; height: 56px; }
+  .rulebook .rb-winning h4 { font-size: 23px; }
+  .rulebook .rb-winning p { font-size: 18px; }
+  .rb-winning p span { margin: 0 3px; }
+  #rb-page-special { display: flex; gap: 20px; }
+  .rb-features, .rb-challenge-row { grid-template-columns: 1fr; gap: 20px; }
+  .rulebook .rb-feature { padding: 18px 14px; gap: 12px; align-items: flex-start; }
+  .rb-feature .rb-art { float: none; width: 65px; height: 65px; margin: 0; }
+  .rb-challenge-row .rb-art { width: 65px; height: 65px; }
+  .rulebook .rb-feature h4 { font-size: 27px; margin-bottom: 12px; }
+  .rb-feature ul { padding-left: 22px; }
+  .rb-outcome-grid { grid-template-columns: 1fr; gap: 12px; }
+  .rb-outcome-grid > div { padding: 15px; flex-direction: row; justify-content: flex-start; text-align: left; gap: 16px; }
+  .rulebook .rb-outcome-grid p strong, .rb-outcome-grid small { font-size: 21px; }
+  .rb-outcome-icon { width: 42px; height: 42px; font-size: 25px; }
+  .rulebook .rb-mini-tabs { flex-wrap: wrap; flex-basis: auto; padding-bottom: 8px; padding-right: 43px; }
+  .rulebook .rb-mini-tabs button { flex: 1 0 28%; font-size: 10px; padding: 11px 4px; }
+  .rb-coming { min-height: 420px; }
+  .rb-coming-art { width: 165px; height: 165px; }
+  .rulebook .rb-coming h4 { font-size: 32px; }
+}
+@media (max-width: 480px) {
+  .rulebook .rulebook-shell { grid-template-columns: 60px minmax(0,1fr); }
+  .rulebook .rb-main-tab { min-height: 108px; padding: 12px 6px; }
+  .rulebook .rb-main-tab svg { width: 40px; height: 40px; }
+  .rulebook .rb-main-tab span { font-size: 9px; }
+  .rulebook .rb-sub-tabs button, .rulebook .rb-mini-tabs button { font-size: 9px; padding-inline: 5px; }
+  .rb-page { padding: 15px 11px; }
+  .rb-step { align-items: flex-start; }
+  .rb-step .rb-art { width: 48px; height: 48px; }
+  .rulebook .rb-page h4 { font-size: 22px; }
+  .rulebook .rb-page p, .rb-feature ul { font-size: 18px; }
+  .rb-winning { flex-direction: column; align-items: flex-start; }
+  .rb-coming-art { width: 145px; height: 145px; }
+  .rulebook .rb-coming h4 { font-size: 28px; }
+}

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="components/board3d/board3d.css" />
     <link rel="stylesheet" href="railway-theme.css?v=mjm-line-1" />
+    <link rel="stylesheet" href="rulebook.css?v=3" />
   </head>
   <body>
     <a class="skip-link" href="#game-area">Skip to game board</a>
@@ -184,19 +185,67 @@
       <ol class="activity-list" id="activity-log"></ol>
     </dialog>
 
-    <dialog class="game-dialog rules-dialog" id="rules-dialog" aria-labelledby="rules-title">
-      <div class="dialog-header"><span class="dialog-icon"><svg aria-hidden="true"><use href="#i-bank"></use></svg></span><button class="icon-button close-rules" type="button" aria-label="Close rules"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></div>
-      <p class="eyebrow">GAME STATION / PUI FORTUNE</p><h2 id="rules-title">Your journey guide.</h2>
-      <div class="rules-content">
-        <section><h3>Goal</h3><p>After two hours, finish the current round. Your total wealth is cash + property purchase values + your building values. Highest total wins.</p></section>
-        <section><h3>On your turn</h3><p>Click your animal token, choose 1–6 steps, then move clockwise and resolve the space. Passing Start earns $200. Buy an open property, pay rent on a rival’s property, or draw a Chance card.</p></section>
-        <section><h3>Landmarks & upgrades</h3><p>Any team may buy an unowned Landmark it lands on after correctly guessing its country. An owner may add one City Upgrade to each Landmark for half its purchase price. An upgrade doubles that Landmark’s base rent and adds its cost to your final wealth.</p></section>
-        <section><h3>Rent or challenge</h3><p>Land on a rival’s landmark and you choose: pay the rent, or challenge the owner to a mini game played away from the screen. If the owner wins you pay double rent. If you win you pay nothing. Record the result honestly — it cannot be undone.</p></section>
-        <section><h3>Stops along the route</h3><p>Income Tax costs $100. City Maintenance Tax costs $50. On a Transit Station, pay $40 to travel to the other station and end your turn there. Free Parking is a breather.</p></section>
-        <section><h3>Jail</h3><p>If sent to Jail, on your next turn either pay $50, use a Get Out of Jail pass, or miss one turn. Landing on Jail is just visiting.</p></section>
-        <section><h3>Trading & cash</h3><p>Teams may trade Landmarks and money whenever all involved teams agree. If a forced payment exceeds your cash, pay what you have and leave the game. Your Landmarks return to the bank.</p></section>
+    <dialog class="game-dialog rules-dialog rulebook" id="rules-dialog" aria-labelledby="rules-title">
+      <svg class="svg-sprite" aria-hidden="true" focusable="false">
+        <symbol id="rb-teams" viewBox="0 0 100 100"><ellipse cx="50" cy="84" rx="36" ry="5" fill="#233f3430"/><g stroke="#365448" stroke-width="2.5"><path d="M18 71v-9a13 13 0 0 1 26 0v9Z" fill="#b8cbb6"/><circle cx="31" cy="41" r="10" fill="#f6e4bd"/><path d="M58 71v-9a13 13 0 0 1 26 0v9Z" fill="#c57767"/><circle cx="71" cy="41" r="10" fill="#f6e4bd"/><path d="M33 83V70a17 17 0 0 1 34 0v13Z" fill="#7f9d85"/><circle cx="50" cy="49" r="13" fill="#f6e4bd"/></g><path d="M44 74h12" stroke="#fdf8ed" stroke-width="3" stroke-linecap="round"/></symbol>
+        <symbol id="rb-dice" viewBox="0 0 100 100"><ellipse cx="50" cy="84" rx="32" ry="5" fill="#233f3430"/><path d="m18 32 34-14 31 17v39L49 87 18 69Z" fill="#faf3e3" stroke="#365448" stroke-width="2.5" stroke-linejoin="round"/><path d="m18 32 31 17 34-14M49 49v38" fill="none" stroke="#365448" stroke-width="2.5"/><path d="m49 49 34-14v39L49 87Z" fill="#d3dfcd"/><g fill="#bc6c5c"><ellipse cx="49" cy="33" rx="5" ry="3"/><ellipse cx="29" cy="49" rx="3" ry="5"/><ellipse cx="38" cy="70" rx="3" ry="5"/></g><g fill="#365448"><ellipse cx="60" cy="58" rx="3" ry="5"/><ellipse cx="73" cy="53" rx="3" ry="5"/><ellipse cx="60" cy="75" rx="3" ry="5"/><ellipse cx="73" cy="70" rx="3" ry="5"/></g></symbol>
+        <symbol id="rb-landmark" viewBox="0 0 100 100"><ellipse cx="50" cy="87" rx="38" ry="5" fill="#233f3430"/><g stroke="#365448" stroke-width="2.5" stroke-linejoin="round"><path d="M32 81V32h32v49Z" fill="#e9dab6"/><path d="M37 32V22h22v10M48 22V10" fill="#9db4a2"/><path d="M13 81V51h19v30M64 81V42h21v39" fill="#b8cbb6"/><path d="M10 84h78" stroke-linecap="round"/><path d="M43 81V65h10v16" fill="#c57767"/></g><g fill="#75988e"><path d="M40 40h7v8h-7zM51 40h7v8h-7zM40 53h7v6h-7zM51 53h7v6h-7zM19 59h6v10h-6zM71 51h7v14h-7z"/></g><path d="m76 18 2 5 5 1-4 3v5l-4-3-5 1 2-5-3-4 5 1Z" fill="#c9a764"/></symbol>
+        <symbol id="rb-rent" viewBox="0 0 100 100"><ellipse cx="50" cy="86" rx="36" ry="5" fill="#233f3430"/><g stroke="#365448" stroke-width="2.5" stroke-linejoin="round"><path d="M12 38h57v36H12Z" fill="#a8c3a5"/><path d="M18 45h45v23H18Z" fill="#dce7cf"/><circle cx="41" cy="56" r="9" fill="#8fac8c"/><path d="M67 59c-9 0-16 3-16 7v13c0 5 32 5 32 0V66c0-4-7-7-16-7Z" fill="#d8b775"/><ellipse cx="67" cy="65" rx="16" ry="6" fill="#f1d89e"/><path d="M52 74c9 5 23 5 30 0" fill="none"/></g><path d="M33 22h35m-7-7 7 7-7 7" fill="none" stroke="#bc6c5c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="rb-trophy" viewBox="0 0 100 100"><ellipse cx="50" cy="88" rx="29" ry="4" fill="#233f3430"/><g stroke="#365448" stroke-width="2.5" stroke-linejoin="round"><path d="M29 28H16v10c0 14 9 19 21 19M71 28h13v10c0 14-9 19-21 19" fill="#e4c486"/><path d="M28 19h44v22c0 30-44 30-44 0Z" fill="#efcf91"/><path d="M46 61v13H32v10h36V74H54V61" fill="#c9a764"/></g><path d="m50 28 4 8 9 1-6 7 1 9-8-4-8 4 1-9-6-7 9-1Z" fill="#fff5d7"/></symbol>
+        <symbol id="rb-jail" viewBox="0 0 100 100"><ellipse cx="50" cy="86" rx="34" ry="4" fill="#233f3430"/><g stroke="#365448" stroke-width="2.5" stroke-linejoin="round"><path d="M19 80V30h62v50Z" fill="#e9dab6"/><path d="M15 30h70V18H15Z" fill="#8fac8c"/><path d="M32 80V42h36v38Z" fill="#789087"/><path d="M40 43v36m10-36v36m10-36v36" stroke="#f6f2df"/><path d="M15 83h70"/></g><circle cx="72" cy="66" r="12" fill="#c57767"/><path d="M72 59v8m0 5v1" stroke="#fff5e6" stroke-width="3" stroke-linecap="round"/></symbol>
+        <symbol id="rb-train" viewBox="0 0 100 100"><ellipse cx="50" cy="86" rx="34" ry="4" fill="#233f3430"/><g stroke="#365448" stroke-width="2.5" stroke-linejoin="round"><path d="M26 67V29c0-17 48-17 48 0v38c0 15-48 15-48 0Z" fill="#8fac8c"/><path d="M33 30h34v23H33Z" fill="#edf2dd"/><path d="M50 31v21M28 84l8-10m36 10-8-10"/><path d="M29 60h42" stroke="#faf3e3" stroke-width="6"/><circle cx="37" cy="68" r="4" fill="#efcf91"/><circle cx="63" cy="68" r="4" fill="#efcf91"/></g><path d="M42 20h16" stroke="#c57767" stroke-width="4" stroke-linecap="round"/></symbol>
+        <symbol id="rb-game" viewBox="0 0 100 100"><ellipse cx="50" cy="84" rx="37" ry="5" fill="#233f3430"/><path d="M23 37c3-10 13-10 23-6h8c10-4 20-4 23 6l10 29c4 14-7 18-15 9L61 64H39L28 75c-8 9-19 5-15-9Z" fill="#f7ecd2" stroke="#365448" stroke-width="2.5"/><path d="M25 47h19m-9-9v18" stroke="#789087" stroke-width="5" stroke-linecap="round"/><circle cx="66" cy="44" r="5" fill="#c57767"/><circle cx="76" cy="54" r="5" fill="#c9a764"/><path d="M47 54h6" stroke="#365448" stroke-width="3" stroke-linecap="round"/><path d="m50 7 3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1Z" fill="#efcf91" stroke="#365448" stroke-width="1.5"/></symbol>
+      </svg>
+      <div class="rulebook-shell">
+        <aside class="rulebook-spine">
+          <div class="rulebook-main-tabs" role="tablist" aria-label="Rulebook sections" aria-orientation="vertical">
+            <button id="rb-main-monopoly" class="rb-main-tab" type="button" role="tab" aria-selected="true" aria-controls="rb-monopoly-section" data-book="monopoly"><svg aria-hidden="true"><use href="#rb-landmark"></use></svg><span>PUI<br />MONOPOLY</span><small>01</small></button>
+            <button id="rb-main-minigames" class="rb-main-tab" type="button" role="tab" aria-selected="false" aria-controls="rb-minigames-section" tabindex="-1" data-book="minigames"><svg aria-hidden="true"><use href="#rb-game"></use></svg><span>MINI<br />GAMES</span><small>02</small></button>
+          </div>
+        </aside>
+        <div class="rulebook-pages">
+          <header class="rulebook-header"><h2 id="rules-title" class="rb-sr-only">PUI Monopoly Rulebook</h2><button class="rb-close close-rules" type="button" aria-label="Close rulebook"><svg aria-hidden="true"><use href="#i-close"></use></svg></button></header>
+          <section id="rb-monopoly-section" class="rb-section" role="tabpanel" aria-labelledby="rb-main-monopoly">
+            <div class="rb-sub-tabs" role="tablist" aria-label="PUI Monopoly chapters">
+              <button id="rb-tab-how" role="tab" type="button" aria-selected="true" aria-controls="rb-page-how" data-page="how"><span>01</span> HOW TO PLAY</button>
+              <button id="rb-tab-special" role="tab" type="button" aria-selected="false" aria-controls="rb-page-special" tabindex="-1" data-page="special"><span>02</span> SPECIAL FEATURES</button>
+            </div>
+            <div class="rb-paper">
+              <section id="rb-page-how" class="rb-page" role="tabpanel" aria-labelledby="rb-tab-how" tabindex="0">
+                <div class="rb-steps">
+                  <article class="rb-step"><svg class="rb-art" aria-hidden="true"><use href="#rb-teams"></use></svg><div><h4>4 teams</h4><p>Start with <strong>$1,000 each</strong>.</p></div></article>
+                  <article class="rb-step"><svg class="rb-art" aria-hidden="true"><use href="#rb-dice"></use></svg><div><h4>Roll the dice</h4><p>Send <strong>1 teammate</strong> each turn.</p></div></article>
+                  <article class="rb-step"><svg class="rb-art" aria-hidden="true"><use href="#rb-landmark"></use></svg><div><h4>Guess the country</h4><p>Answer correctly to <strong>buy the landmark</strong>.</p></div></article>
+                  <article class="rb-step"><svg class="rb-art" aria-hidden="true"><use href="#rb-rent"></use></svg><div><h4>Collect rent</h4><p>Earn rent when others land on <strong>your landmarks</strong>.</p></div></article>
+                </div>
+                <article class="rb-winning"><svg class="rb-art" aria-hidden="true"><use href="#rb-trophy"></use></svg><div><h4>Highest total wealth wins</h4><p>Cash <span>+</span> Landmark Values <span>=</span> Total Wealth</p></div></article>
+              </section>
+              <section id="rb-page-special" class="rb-page" role="tabpanel" aria-labelledby="rb-tab-special" tabindex="0" hidden>
+                <div class="rb-features">
+                  <article class="rb-feature"><svg class="rb-art" aria-hidden="true"><use href="#rb-jail"></use></svg><div><h4>Jail</h4><ul><li>Pay <strong>$50</strong>, or</li><li>Use a <strong>Jail Pass</strong>, or</li><li><strong>Miss one turn</strong></li></ul></div></article>
+                  <article class="rb-feature"><svg class="rb-art" aria-hidden="true"><use href="#rb-train"></use></svg><div><h4>Transit Station</h4><p>Pay <strong>$40</strong> to travel to another station.</p></div></article>
+                </div>
+                <div class="rb-challenge-row">
+                  <article class="rb-feature"><svg class="rb-art" aria-hidden="true"><use href="#rb-game"></use></svg><div><h4>Mini Game</h4><p>On <strong>another team's landmark</strong>: pay rent or challenge.</p></div></article>
+                  <div class="rb-outcomes"><div class="rb-outcome-grid"><div><span class="rb-outcome-icon" aria-hidden="true">$</span><p><strong>PAY RENT</strong><small>Normal rent</small></p></div><div class="rb-outcome-win"><span class="rb-outcome-icon" aria-hidden="true">✓</span><p><strong>WIN</strong><small>Rent-free</small></p></div><div class="rb-outcome-lose"><span class="rb-outcome-icon" aria-hidden="true">×</span><p><strong>LOSE</strong><small>Double rent</small></p></div></div></div>
+                </div>
+              </section>
+            </div>
+          </section>
+          <section id="rb-minigames-section" class="rb-section" role="tabpanel" aria-labelledby="rb-main-minigames" hidden>
+            <div class="rb-sub-tabs rb-mini-tabs" role="tablist" aria-label="Mini game chapters">
+              <button id="rb-tab-mini-1" role="tab" type="button" aria-selected="true" aria-controls="rb-page-mini-1" data-page="mini-1">MINI GAME <span>01</span></button>
+              <button id="rb-tab-mini-2" role="tab" type="button" aria-selected="false" aria-controls="rb-page-mini-2" tabindex="-1" data-page="mini-2">MINI GAME <span>02</span></button>
+              <button id="rb-tab-mini-3" role="tab" type="button" aria-selected="false" aria-controls="rb-page-mini-3" tabindex="-1" data-page="mini-3">MINI GAME <span>03</span></button>
+              <button id="rb-tab-mini-4" role="tab" type="button" aria-selected="false" aria-controls="rb-page-mini-4" tabindex="-1" data-page="mini-4">MINI GAME <span>04</span></button>
+              <button id="rb-tab-mini-5" role="tab" type="button" aria-selected="false" aria-controls="rb-page-mini-5" tabindex="-1" data-page="mini-5">MINI GAME <span>05</span></button>
+              <button id="rb-tab-mini-6" role="tab" type="button" aria-selected="false" aria-controls="rb-page-mini-6" tabindex="-1" data-page="mini-6">MINI GAME <span>06</span></button>
+            </div>
+            <div class="rb-paper" id="rb-mini-pages"></div>
+          </section>
+          <span id="rb-folio" class="rb-sr-only">CHAPTER 01 / 02</span>
+        </div>
       </div>
-      <div class="dialog-actions"><button class="primary-button close-rules" type="button">Got it</button></div>
     </dialog>
 
     <dialog class="game-dialog trade-dialog" id="trade-dialog" aria-labelledby="trade-title">
@@ -275,6 +324,7 @@
     <script src="purchase-effects.js"></script>
     <script src="presentation-effects.js"></script>
     <script src="app.js"></script>
+    <script src="rulebook.js?v=2"></script>
       <div class="space-tip" id="space-tip" role="tooltip" hidden></div>
   </body>
 </html>
