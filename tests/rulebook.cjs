@@ -57,8 +57,9 @@ assert.equal(miniPages.children.length, 6);
 for (const [index, page] of miniPages.children.entries()) {
   assert.equal(page.id, `rb-page-mini-${index+1}`);
   assert.equal(page.hidden, index !== 0);
-  if (index >= 1 && index <= 4) {
-    const symbol = ['rb-mini-rps', 'rb-mini-chair', 'rb-mini-cups', 'rb-mini-flock'][index - 1];
+  assert.ok(!page.innerHTML.includes('Coming Soon'));
+  if (index >= 1 && index <= 5) {
+    const symbol = ['rb-mini-rps', 'rb-mini-chair', 'rb-mini-cups', 'rb-mini-flock', 'rb-mini-colour'][index - 1];
     assert.ok(html.includes(`id="${symbol}"`), `Original cartoon symbol exists: ${symbol}`);
     const header = page.innerHTML.split('</header>')[0];
     assert.ok(header.includes(`href="#${symbol}"`) && header.includes('class="rb-mini-cartoon"'), `Matching cartoon in chapter header: ${symbol}`);
@@ -85,8 +86,8 @@ for (const [index, page] of miniPages.children.entries()) {
     for (const rule of ['What the Flock?!', 'All members from both teams', 'starting line', 'finish line', 'sheep pen', 'take turns', 'piece of cardboard', 'herd the sheep into the pen', 'most sheep into the pen wins']) assert.ok(page.innerHTML.includes(rule), `What the Flock?! rule present: ${rule}`);
     assert.equal((page.innerHTML.match(/<li>/g) || []).length, 3);
   } else {
-    assert.ok(page.innerHTML.includes('Coming Soon'));
-    assert.ok(page.innerHTML.includes(`Mini Game 0${index+1}`));
+    for (const rule of ['Step on the Color!', 'Both teams', 'all their representatives', 'host calls a colour', 'Avoid stepping on that colour', 'time runs out', 'touches the announced colour', 'eliminated', 'last player standing wins']) assert.ok(page.innerHTML.includes(rule), `Step on the Color! rule present: ${rule}`);
+    assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
   }
 }
 function click(list, index) {
@@ -119,4 +120,4 @@ lists[0].handlers.keydown({key:'ArrowUp', target:{closest:()=>lists[0].children[
 assert.equal(chapters.monopoly.hidden, false);
 assert.equal(elements.get('rb-folio').textContent, 'CHAPTER 02 / 02');
 assert.ok(!/\b(state|adjustCash|purchaseProperty|movePlayer)\b/.test(source.replace(/\/\/[^\n]*/g,'')));
-console.log('PASS rulebook: all five mini-game instructions, one empty placeholder, two-row special features, selection memory, keyboard navigation, and no game-state coupling');
+console.log('PASS rulebook: all six mini-game instructions and matching illustrations, two-row special features, selection memory, keyboard navigation, and no game-state coupling');
