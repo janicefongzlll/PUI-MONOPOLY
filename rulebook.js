@@ -51,11 +51,11 @@
     </ol>
     <div class="rb-flip-win"><svg aria-hidden="true"><use href="#rb-trophy"></use></svg><p>The team that successfully herds the <strong>most sheep into the pen wins!</strong></p></div>`;
   const colourPage = `
-    <header class="rb-flip-header"><h3>Step on the Color!</h3><svg class="rb-mini-cartoon" viewBox="0 0 240 100" aria-hidden="true" focusable="false"><use href="#rb-mini-colour"></use></svg></header>
+    <header class="rb-flip-header"><h3>Don’t Touch the Color!</h3><svg class="rb-mini-cartoon" viewBox="0 0 240 100" aria-hidden="true" focusable="false"><use href="#rb-mini-colour"></use></svg></header>
     <ol class="rb-flip-steps">
       <li><span class="rb-flip-number" aria-hidden="true">1</span><p><strong>Both teams</strong> send out <strong>all their representatives</strong>.</p></li>
       <li><span class="rb-flip-number" aria-hidden="true">2</span><p>Listen carefully when the <strong>host calls a colour</strong>.</p></li>
-      <li><span class="rb-flip-number" aria-hidden="true">3</span><p><strong>Avoid stepping on that colour</strong> before <strong>time runs out!</strong></p></li>
+      <li><span class="rb-flip-number" aria-hidden="true">3</span><p><strong>Avoid touching that colour</strong> before <strong>time runs out!</strong></p></li>
       <li><span class="rb-flip-number" aria-hidden="true">4</span><p>Anyone who <strong>touches the announced colour</strong> is <strong>eliminated</strong>.</p></li>
     </ol>
     <div class="rb-flip-win"><svg aria-hidden="true"><use href="#rb-trophy"></use></svg><p>The team with the <strong>last player standing wins!</strong></p></div>`;

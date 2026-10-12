@@ -86,7 +86,8 @@ for (const [index, page] of miniPages.children.entries()) {
     for (const rule of ['What the Flock?!', 'All members from both teams', 'starting line', 'finish line', 'sheep pen', 'take turns', 'piece of cardboard', 'herd the sheep into the pen', 'most sheep into the pen wins']) assert.ok(page.innerHTML.includes(rule), `What the Flock?! rule present: ${rule}`);
     assert.equal((page.innerHTML.match(/<li>/g) || []).length, 3);
   } else {
-    for (const rule of ['Step on the Color!', 'Both teams', 'all their representatives', 'host calls a colour', 'Avoid stepping on that colour', 'time runs out', 'touches the announced colour', 'eliminated', 'last player standing wins']) assert.ok(page.innerHTML.includes(rule), `Step on the Color! rule present: ${rule}`);
+    for (const rule of ['Don’t Touch the Color!', 'Both teams', 'all their representatives', 'host calls a colour', 'Avoid touching that colour', 'time runs out', 'touches the announced colour', 'eliminated', 'last player standing wins']) assert.ok(page.innerHTML.includes(rule), `Don’t Touch the Color! rule present: ${rule}`);
+    assert.ok(!/Step on the Color|stepping/i.test(page.innerHTML));
     assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
   }
 }
