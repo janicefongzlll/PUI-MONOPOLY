@@ -208,9 +208,9 @@
 .rb-sub-tabs { padding: 0 62px 0 12px; flex: 0 0 62px; gap: 10px; }
 .rulebook .rb-sub-tabs button { padding: 13px 26px; font-size: clamp(18px,1.45vw,28px); letter-spacing: .02em; color: #30492d; }
 .rulebook .rb-sub-tabs button span { display: none; }
-.rulebook .rb-mini-tabs { gap: 6px; padding-left: 4px; }
+.rulebook .rb-mini-tabs { gap: 6px; padding-left: 4px; padding-right: 62px; }
 .rulebook .rb-mini-tabs button { gap: 6px; padding-inline: 8px; font-size: clamp(13px,1.1vw,21px); }
-.rulebook .rb-mini-tabs button span { display: inline; }
+.rulebook .rb-mini-tabs button span { display: inline; font-size: inherit; }
 .rb-paper { flex: 1; min-height: 0; overflow: auto; }
 .rb-page { height: 100%; min-height: 0; padding: clamp(20px,2vw,38px); }
 #rb-page-how, #rb-page-special { display: flex; flex-direction: column; }
@@ -324,4 +324,31 @@
   .rb-winning { flex-direction: column; align-items: flex-start; }
   .rb-coming-art { width: 145px; height: 145px; }
   .rulebook .rb-coming h4 { font-size: 28px; }
+}
+
+/* In-person mini-game instructions and decorative chapter illustrations only. */
+.rb-flip-page { display: flex; flex-direction: column; gap: clamp(16px,1.5vw,28px); }
+.rb-flip-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.rulebook .rb-flip-header h3 { margin: 0; font: 800 clamp(32px,3vw,58px)/1.1 Arial, Helvetica, sans-serif; letter-spacing: -.03em; }
+.rb-mini-cartoon { display: block; flex: 0 0 auto; width: clamp(168px,13vw,250px); height: auto; aspect-ratio: 12 / 5; margin-left: auto; pointer-events: none; }
+.rb-flip-sides { display: flex; align-items: center; gap: 14px; font-size: clamp(20px,1.6vw,31px); }
+.rb-flip-card { width: clamp(26px,2.3vw,44px); height: clamp(38px,3.3vw,63px); border: 2px solid #526351; border-radius: 7px; box-shadow: 0 4px 0 #7f897333; }
+.rb-flip-black { background: #252a26; transform: rotate(-9deg); }
+.rb-flip-white { background: #fffef9; transform: rotate(9deg); margin-left: -8px; }
+.rb-flip-steps { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: repeat(2,minmax(0,1fr)); gap: clamp(16px,1.5vw,28px); list-style: none; margin: 0; padding: 0; }
+.rb-flip-steps > li { display: flex; gap: clamp(14px,1.3vw,25px); align-items: center; padding: clamp(18px,1.7vw,32px); border: 1px solid #ced7bf; border-radius: 14px; background: #f1f2e4; }
+.rb-flock-steps > li:last-child { grid-column: 1 / -1; }
+.rb-flip-number { flex-shrink: 0; display: grid; place-items: center; width: clamp(38px,3vw,58px); height: clamp(38px,3vw,58px); border-radius: 50%; background: #dbe5ce; color: #2d4c36; font-size: clamp(22px,1.7vw,33px); font-weight: 800; }
+.rb-flip-win { display: flex; align-items: center; gap: 20px; padding: 16px 24px; border-radius: 14px; background: #2d4c36; }
+.rb-flip-win svg { width: clamp(55px,4.5vw,86px); height: clamp(55px,4.5vw,86px); flex-shrink: 0; }
+.rulebook .rb-flip-win p, .rulebook .rb-flip-win p strong { color: #fff9e9; }
+@media (max-width: 800px) {
+  .rb-flip-header { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .rb-mini-cartoon { align-self: flex-end; width: 168px; }
+  .rb-flip-sides { font-size: 20px; }
+  .rb-flip-steps { grid-template-columns: 1fr; grid-template-rows: none; }
+  .rb-flip-steps > li { padding: 18px 14px; align-items: flex-start; }
+  .rb-flip-number { width: 32px; height: 32px; font-size: 19px; }
+  .rb-flip-win { padding: 16px 14px; gap: 12px; }
+  .rb-flip-win svg { width: 45px; height: 45px; }
 }

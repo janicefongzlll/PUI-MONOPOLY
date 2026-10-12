@@ -57,8 +57,37 @@ assert.equal(miniPages.children.length, 6);
 for (const [index, page] of miniPages.children.entries()) {
   assert.equal(page.id, `rb-page-mini-${index+1}`);
   assert.equal(page.hidden, index !== 0);
-  assert.ok(page.innerHTML.includes('Coming Soon'));
-  assert.ok(page.innerHTML.includes(`Mini Game 0${index+1}`));
+  if (index >= 1 && index <= 4) {
+    const symbol = ['rb-mini-rps', 'rb-mini-chair', 'rb-mini-cups', 'rb-mini-flock'][index - 1];
+    assert.ok(html.includes(`id="${symbol}"`), `Original cartoon symbol exists: ${symbol}`);
+    const header = page.innerHTML.split('</header>')[0];
+    assert.ok(header.includes(`href="#${symbol}"`) && header.includes('class="rb-mini-cartoon"'), `Matching cartoon in chapter header: ${symbol}`);
+    assert.ok(header.includes('aria-hidden="true"') && header.includes('focusable="false"'));
+  }
+  if (index === 0) {
+    assert.ok(!page.innerHTML.includes('Coming Soon'));
+    for (const rule of ['Flip Wars', '2 teams', 'Black team vs White team', '2 rows', 'EMCEE counts 1–10', 'as many cards as possible', "your team's colour", 'return to your team', 'The next person continues', 'most cards showing its colour wins']) assert.ok(page.innerHTML.includes(rule), `Flip Wars rule present: ${rule}`);
+    assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
+  } else if (index === 1) {
+    assert.ok(!page.innerHTML.includes('Coming Soon'));
+    for (const rule of ['Rock, Paper, Empire!', '2 teams', 'face-to-face in 2 rows', 'first players from both teams', 'Rock, Paper, Scissors', 'loser joins the winner’s team', 'winner stays', 'next opponent', 'everyone has been challenged', 'defeats the final opponent wins the game for their team']) assert.ok(page.innerHTML.includes(rule), `Rock, Paper, Empire! rule present: ${rule}`);
+    assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
+  } else if (index === 2) {
+    assert.ok(!page.innerHTML.includes('Coming Soon'));
+    for (const rule of ['Musical Chairs', '2 teams sends 5 teammates', '10 players and 9 chairs', 'music plays', 'walk around the chairs', 'music stops', 'find a seat', 'without a chair is out', 'Remove 1 chair', 'only 1 player remains', 'last player remaining wins for their team']) assert.ok(page.innerHTML.includes(rule), `Musical Chairs rule present: ${rule}`);
+    assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
+  } else if (index === 3) {
+    assert.ok(!page.innerHTML.includes('Coming Soon'));
+    for (const rule of ['Cup Me If You Can', '2 members', 'cup holders', 'line up behind the starting line', '1 cup', 'take turns placing their cups', 'body parts only', 'No props or tools', 'most cups successfully balanced on their two members wins']) assert.ok(page.innerHTML.includes(rule), `Cup Me If You Can rule present: ${rule}`);
+    assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
+  } else if (index === 4) {
+    assert.ok(!page.innerHTML.includes('Coming Soon'));
+    for (const rule of ['What the Flock?!', 'All members from both teams', 'starting line', 'finish line', 'sheep pen', 'take turns', 'piece of cardboard', 'herd the sheep into the pen', 'most sheep into the pen wins']) assert.ok(page.innerHTML.includes(rule), `What the Flock?! rule present: ${rule}`);
+    assert.equal((page.innerHTML.match(/<li>/g) || []).length, 3);
+  } else {
+    assert.ok(page.innerHTML.includes('Coming Soon'));
+    assert.ok(page.innerHTML.includes(`Mini Game 0${index+1}`));
+  }
 }
 function click(list, index) {
   const tab = list.children[index];
@@ -90,4 +119,4 @@ lists[0].handlers.keydown({key:'ArrowUp', target:{closest:()=>lists[0].children[
 assert.equal(chapters.monopoly.hidden, false);
 assert.equal(elements.get('rb-folio').textContent, 'CHAPTER 02 / 02');
 assert.ok(!/\b(state|adjustCash|purchaseProperty|movePlayer)\b/.test(source.replace(/\/\/[^\n]*/g,'')));
-console.log('PASS rulebook: two sections, eight chapters, empty placeholders, selection memory, keyboard wrap/Home/End, and no game-state coupling');
+console.log('PASS rulebook: all five mini-game instructions, one empty placeholder, two-row special features, selection memory, keyboard navigation, and no game-state coupling');
