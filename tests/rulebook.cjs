@@ -54,12 +54,13 @@ const book = {
 };
 vm.runInNewContext(source, { document: { getElementById: () => book, createElement: () => element('new') } });
 assert.equal(miniPages.children.length, 6);
+assert.deepEqual(miniPages.children.map(page => page.innerHTML.match(/<h3>([^<]+)<\/h3>/)[1]), ['Flip Wars', 'Rock, Paper, Empire!', 'Cup Me If You Can', 'What the Flock?!', 'Don’t Touch the Color!', 'Musical Chairs']);
 for (const [index, page] of miniPages.children.entries()) {
   assert.equal(page.id, `rb-page-mini-${index+1}`);
   assert.equal(page.hidden, index !== 0);
   assert.ok(!page.innerHTML.includes('Coming Soon'));
   if (index >= 1 && index <= 5) {
-    const symbol = ['rb-mini-rps', 'rb-mini-chair', 'rb-mini-cups', 'rb-mini-flock', 'rb-mini-colour'][index - 1];
+    const symbol = ['rb-mini-rps', 'rb-mini-cups', 'rb-mini-flock', 'rb-mini-colour', 'rb-mini-chair'][index - 1];
     assert.ok(html.includes(`id="${symbol}"`), `Original cartoon symbol exists: ${symbol}`);
     const header = page.innerHTML.split('</header>')[0];
     assert.ok(header.includes(`href="#${symbol}"`) && header.includes('class="rb-mini-cartoon"'), `Matching cartoon in chapter header: ${symbol}`);
@@ -73,18 +74,21 @@ for (const [index, page] of miniPages.children.entries()) {
     assert.ok(!page.innerHTML.includes('Coming Soon'));
     for (const rule of ['Rock, Paper, Empire!', '2 teams', 'face-to-face in 2 rows', 'first players from both teams', 'Rock, Paper, Scissors', 'loser joins the winner’s team', 'winner stays', 'next opponent', 'everyone has been challenged', 'defeats the final opponent wins the game for their team']) assert.ok(page.innerHTML.includes(rule), `Rock, Paper, Empire! rule present: ${rule}`);
     assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
-  } else if (index === 2) {
+  } else if (index === 5) {
     assert.ok(!page.innerHTML.includes('Coming Soon'));
     for (const rule of ['Musical Chairs', '2 teams sends 5 teammates', '10 players and 9 chairs', 'music plays', 'walk around the chairs', 'music stops', 'find a seat', 'without a chair is out', 'Remove 1 chair', 'only 1 player remains', 'last player remaining wins for their team']) assert.ok(page.innerHTML.includes(rule), `Musical Chairs rule present: ${rule}`);
     assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
+  } else if (index === 2) {
+    assert.ok(!page.innerHTML.includes('Coming Soon'));
+    for (const rule of ['Cup Me If You Can', '1 member', 'cup holder', 'line up behind the starting line', '1 cup', 'take turns placing their cups', 'body parts only', 'No props or tools', 'most cups successfully balanced on their selected member wins']) assert.ok(page.innerHTML.includes(rule), `Cup Me If You Can rule present: ${rule}`);
+    assert.ok(!/2 members|two selected members|two members/.test(page.innerHTML), 'only one cup holder per team');
+    assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
   } else if (index === 3) {
     assert.ok(!page.innerHTML.includes('Coming Soon'));
-    for (const rule of ['Cup Me If You Can', '2 members', 'cup holders', 'line up behind the starting line', '1 cup', 'take turns placing their cups', 'body parts only', 'No props or tools', 'most cups successfully balanced on their two members wins']) assert.ok(page.innerHTML.includes(rule), `Cup Me If You Can rule present: ${rule}`);
+    for (const rule of ['What the Flock?!', '2 teams, 4 players each', 'starting line', 'whistle', 'cardboard', "your team's pen", 'No touching sheep', 'any body part', 'Stealing sheep', "opponent's pen", 'is allowed', '2 minutes – most sheep wins']) assert.ok(page.innerHTML.includes(rule), `What the Flock?! rule present: ${rule}`);
     assert.equal((page.innerHTML.match(/<li>/g) || []).length, 4);
-  } else if (index === 4) {
-    assert.ok(!page.innerHTML.includes('Coming Soon'));
-    for (const rule of ['What the Flock?!', 'All members from both teams', 'starting line', 'finish line', 'sheep pen', 'take turns', 'piece of cardboard', 'herd the sheep into the pen', 'most sheep into the pen wins']) assert.ok(page.innerHTML.includes(rule), `What the Flock?! rule present: ${rule}`);
-    assert.equal((page.innerHTML.match(/<li>/g) || []).length, 3);
+    assert.ok(!page.innerHTML.includes('rb-flock-steps'), 'four equal cards use the standard layout');
+    assert.ok(!page.innerHTML.includes('All members from both teams') && !page.innerHTML.includes('take turns'), 'old sheep rules removed');
   } else {
     for (const rule of ['Don’t Touch the Color!', 'Both teams', 'all their representatives', 'host calls a colour', 'Avoid touching that colour', 'time runs out', 'touches the announced colour', 'eliminated', 'last player standing wins']) assert.ok(page.innerHTML.includes(rule), `Don’t Touch the Color! rule present: ${rule}`);
     assert.ok(!/Step on the Color|stepping/i.test(page.innerHTML));

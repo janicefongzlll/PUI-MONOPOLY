@@ -36,20 +36,21 @@
   const cupPage = `
     <header class="rb-flip-header"><h3>Cup Me If You Can</h3><svg class="rb-mini-cartoon" viewBox="0 0 240 100" aria-hidden="true" focusable="false"><use href="#rb-mini-cups"></use></svg></header>
     <ol class="rb-flip-steps">
-      <li><span class="rb-flip-number" aria-hidden="true">1</span><p>Each team selects <strong>2 members</strong> to stand as <strong>cup holders</strong>.</p></li>
+      <li><span class="rb-flip-number" aria-hidden="true">1</span><p>Each team selects <strong>1 member</strong> to stand as the <strong>cup holder</strong>.</p></li>
       <li><span class="rb-flip-number" aria-hidden="true">2</span><p>The remaining members <strong>line up behind the starting line</strong>, each holding <strong>1 cup</strong>.</p></li>
-      <li><span class="rb-flip-number" aria-hidden="true">3</span><p>Players <strong>take turns placing their cups</strong> on the two selected members.</p></li>
+      <li><span class="rb-flip-number" aria-hidden="true">3</span><p>Players <strong>take turns placing their cups</strong> on their selected member.</p></li>
       <li><span class="rb-flip-number" aria-hidden="true">4</span><p>Cups must be held using <strong>body parts only</strong>. <strong>No props or tools</strong> are allowed.</p></li>
     </ol>
-    <div class="rb-flip-win"><svg aria-hidden="true"><use href="#rb-trophy"></use></svg><p>The team with the <strong>most cups successfully balanced on their two members wins!</strong></p></div>`;
+    <div class="rb-flip-win"><svg aria-hidden="true"><use href="#rb-trophy"></use></svg><p>The team with the <strong>most cups successfully balanced on their selected member wins!</strong></p></div>`;
   const flockPage = `
     <header class="rb-flip-header"><h3>What the Flock?!</h3><svg class="rb-mini-cartoon" viewBox="0 0 240 100" aria-hidden="true" focusable="false"><use href="#rb-mini-flock"></use></svg></header>
-    <ol class="rb-flip-steps rb-flock-steps">
-      <li><span class="rb-flip-number" aria-hidden="true">1</span><p><strong>All members from both teams</strong> line up behind the <strong>starting line</strong>.</p></li>
-      <li><span class="rb-flip-number" aria-hidden="true">2</span><p>The <strong>finish line</strong> is a designated <strong>sheep pen</strong>.</p></li>
-      <li><span class="rb-flip-number" aria-hidden="true">3</span><p>Players <strong>take turns</strong> using a <strong>piece of cardboard</strong> to herd the sheep into the pen.</p></li>
+    <ol class="rb-flip-steps">
+      <li><span class="rb-flip-number" aria-hidden="true">1</span><p><strong>2 teams, 4 players each</strong>, line up behind the <strong>starting line</strong>.</p></li>
+      <li><span class="rb-flip-number" aria-hidden="true">2</span><p>At the <strong>whistle</strong>, use <strong>cardboard</strong> to herd sheep into <strong>your team's pen</strong>.</p></li>
+      <li><span class="rb-flip-number" aria-hidden="true">3</span><p><strong>No touching sheep</strong> with <strong>any body part!</strong></p></li>
+      <li><span class="rb-flip-number" aria-hidden="true">4</span><p><strong>Stealing sheep</strong> from the <strong>opponent's pen</strong> is allowed.</p></li>
     </ol>
-    <div class="rb-flip-win"><svg aria-hidden="true"><use href="#rb-trophy"></use></svg><p>The team that successfully herds the <strong>most sheep into the pen wins!</strong></p></div>`;
+    <div class="rb-flip-win"><svg aria-hidden="true"><use href="#rb-trophy"></use></svg><p><strong>2 minutes – most sheep wins!</strong></p></div>`;
   const colourPage = `
     <header class="rb-flip-header"><h3>Don’t Touch the Color!</h3><svg class="rb-mini-cartoon" viewBox="0 0 240 100" aria-hidden="true" focusable="false"><use href="#rb-mini-colour"></use></svg></header>
     <ol class="rb-flip-steps">
@@ -59,7 +60,7 @@
       <li><span class="rb-flip-number" aria-hidden="true">4</span><p>Anyone who <strong>touches the announced colour</strong> is <strong>eliminated</strong>.</p></li>
     </ol>
     <div class="rb-flip-win"><svg aria-hidden="true"><use href="#rb-trophy"></use></svg><p>The team with the <strong>last player standing wins!</strong></p></div>`;
-  const miniGamePages = { 1: flipWarsPage, 2: empirePage, 3: musicalChairsPage, 4: cupPage, 5: flockPage, 6: colourPage };
+  const miniGamePages = { 1: flipWarsPage, 2: empirePage, 3: cupPage, 4: flockPage, 5: colourPage, 6: musicalChairsPage };
   for (let number = 1; number <= 6; number++) {
     const page = document.createElement('section');
     page.id = `rb-page-mini-${number}`;
