@@ -189,18 +189,160 @@ test('rent and challenge transfer correct amounts including upgraded rent',()=>{
   const win=engine(); win.run('properties[0].owner=1;winChallenge(player(),properties[0]);');
   assert.equal(win.run('player().cash'),1000);
 });
-test('all Chance effects preserve original rewards and resolution behavior',async()=>{
+test('Chance deck contains exactly the requested ten cards in order',()=>{
+  const e=engine();
+  assert.deepEqual(e.plain('chanceCards.map(card=>card.title)'),['Go Back 3 Spaces','Advance to the nearest Train Transit','Advance to a random Landmark','Go Directly to Jail','Get Out of Jail Free','Bank Bonus','Pay a Fine','Team Bonus','Pay Each Team $30','Advance to Start']);
+  assert.deepEqual(e.plain('chanceCards.filter(card=>card.effect==="cash").map(card=>card.amount)'),[100,-50,150]);
+});
+test('first Chance draw can select every card without changing cash or movement',()=>{
+  for(let index=0;index<10;index++) {
+    const e=engine(); e.run(`state.lastChanceCard=null; Math.random=()=>${(index+0.5)/10}; drawChance(player());`);
+    assert.equal(e.run('state.pending.card'),index);
+    assert.equal(e.run('state.lastChanceCard'),index);
+    assert.equal(e.run('ui.title'),'CHANCE');
+    assert.equal(e.run('state.pending.revealed'),false);
+    e.run('ui.actions[0].action();');
+    assert.equal(e.run('ui.title'),e.run(`chanceCards[${index}].title`));
+    assert.equal(e.run('player().cash'),1000);
+    assert.equal(e.run('player().position'),0);
+  }
+});
+test('Chance excludes exactly the previous global card and keeps all other cards eligible',()=>{
+  for(let previous=0;previous<10;previous++) {
+    const eligible=[];
+    for(let sample=0;sample<9;sample++) {
+      const e=engine(); e.run(`showChanceCard(player(),${previous}); state.currentPlayer=2; Math.random=()=>${(sample+0.5)/9}; drawChance(player());`);
+      const selected=e.run('state.pending.card'); eligible.push(selected);
+      assert.notEqual(selected,previous);
+      assert.equal(e.run('state.lastChanceCard'),selected);
+      assert.equal(e.run('state.pending.player'),2);
+      assert.equal(e.run('chanceCards.length'),10);
+    }
+    assert.deepEqual(eligible,Array.from({length:10},(_,i)=>i).filter(i=>i!==previous));
+  }
+  const e=engine(); e.run('Math.random=()=>0; draws=[]; for(let turn=0;turn<12;turn++){state.currentPlayer=turn%4; drawChance(player()); draws.push(state.lastChanceCard);}');
+  assert.deepEqual(e.plain('draws'),[0,1,0,1,0,1,0,1,0,1,0,1],'excluded cards become eligible again on the following draw');
+});
+test('saved Chance history survives cloud reload and pending card reopening without rerolling',async()=>{
+  const e=engine();
+  e.run(`
+    authUser={id:'test-user'}; state.gameId='test-game'; state.gameName='Chance history';
+    supabaseClient={from(){return {
+      update(payload){return {async eq(){cloud=JSON.parse(JSON.stringify(payload));return {error:null};}};},
+      select(){return {eq(){return {async single(){return {data:{id:'test-game',name:'Chance history',game_state:cloud.game_state},error:null};}};}};}
+    };}};
+    showChanceCard(player(),5); Math.random=()=>{throw new Error('Restoring a card must not reroll');};
+  `);
+  await e.run('saveGame(false)'); e.run('state=null;'); await e.run('loadCloudGame("test-game")');
+  assert.equal(e.run('state.lastChanceCard'),5);
+  assert.equal(e.run('state.pending.card'),5);
+  assert.equal(e.run('ui.title'),'CHANCE');
+  assert.equal(e.run('player().cash'),1000,'restoring an unresolved card does not pay it');
+  e.run('ui.actions[0].action();');
+  assert.equal(e.run('ui.title'),'Bank Bonus');
+  e.run('ui.actions[0].action(); completeTurn(state); Math.random=()=>0.5; drawChance(player());');
+  assert.equal(e.run('state.currentPlayer'),1);
+  assert.notEqual(e.run('state.lastChanceCard'),5);
+  assert.equal(e.run('state.players[0].cash'),1100);
+});
+test('older saves without Chance history remain loadable',async()=>{
+  const e=engine();
+  e.run(`cloud=snapshotGame(); delete cloud.state.lastChanceCard; cloud.state.phase='choose';
+    supabaseClient={from(){return {select(){return {eq(){return {async single(){return {data:{id:'g',name:'Old game',game_state:cloud},error:null};}};}};}};}};`);
+  await e.run('loadCloudGame("g")');
+  assert.equal(e.run('state.lastChanceCard'),null);
+  e.run('Math.random=()=>0; drawChance(player());');
+  assert.equal(e.run('state.lastChanceCard'),0);
+});
+test('starting a completely new game resets Chance history',async()=>{
+  const e=engine();
+  e.run(`state.lastChanceCard=8; enterGameFullscreen=runBoardIntro=()=>{};
+    document.querySelectorAll=selector=>selector==='.name-input'?[{value:'Team A'},{value:'Team B'}]:selector==='.avatar-picker'?[{querySelector:()=>({value:'0'})},{querySelector:()=>({value:'1'})}]:[];`);
+  await e.run('startGame({preventDefault(){}})');
+  assert.equal(e.run('state.lastChanceCard'),null);
+  e.run('Math.random=()=>0.85; drawChance(player());');
+  assert.equal(e.run('state.lastChanceCard'),8,'the previous game does not exclude any card');
+});
+test('Chance click reveals the selected card once and only Resolve applies its effect',()=>{
+  const e=engine(); e.run('Math.random=()=>0.55; drawChance(player()); reveal=ui.actions[0].action; Math.random=()=>{throw new Error("Reveal must never reroll");};');
+  assert.equal(e.run('ui.title'),'CHANCE');
+  assert.equal(e.run('ui.copy.includes("Collect")'),false);
+  assert.equal(e.run('ui.details'),undefined);
+  e.run('reveal(); reveal();');
+  assert.equal(e.run('ui.title'),'Bank Bonus');
+  assert.equal(e.run('state.pending.revealed'),true);
+  assert.equal(e.run('player().cash'),1000);
+  assert.equal(e.run('player().turns'),0);
+  e.run('resolve=ui.actions[0].action; resolve(); resolve();');
+  assert.equal(e.run('player().cash'),1100);
+  assert.equal(e.run('player().turns'),1);
+});
+test('hidden and revealed Chance screens restore without rerolling or applying effects',()=>{
+  for(const revealed of [false,true]) {
+    const e=engine(); e.run(`showChanceCard(player(),5,${revealed}); saved=snapshotGame(); state=saved.state; Math.random=()=>{throw new Error("Restore must not reroll");}; resumePending();`);
+    assert.equal(e.run('state.pending.revealed'),revealed);
+    assert.equal(e.run('ui.title'),revealed?'Bank Bonus':'CHANCE');
+    assert.equal(e.run('player().cash'),1000);
+  }
+  const legacy=engine(); legacy.run('showChanceCard(player(),5,true); delete state.pending.revealed; resumePending();');
+  assert.equal(legacy.run('ui.title'),'Bank Bonus','older saves retain their already visible card');
+});
+test('a stale Chance reveal cannot reopen a card after changing game state',()=>{
+  const e=engine(); e.run('showChanceCard(player(),5); reveal=ui.actions[0].action; state.pending={kind:"turn-end"}; reveal();');
+  assert.equal(e.run('state.pending.kind'),'turn-end');
+  assert.equal(e.run('player().cash'),1000);
+  assert.equal(e.run('ui.title'),'CHANCE');
+});
+test('all updated Chance effects use existing movement, cash, Jail and turn flow',async()=>{
   for (let i=0;i<10;i++) {
-    const e=engine(); e.run('player().position=34; resolveSpace=p=>{state.resolved=p.position;};');
+    const e=engine(); e.run('Math.random=()=>0.5; player().position=34; resolveSpace=p=>{state.resolved=p.position;};');
     await e.run(`applyChance(player(),chanceCards[${i}])`);
-    const expectedCash=[1120,925,1160,950,1200,1000,1000,1000,1000,1000][i];
+    const expectedCash=[1000,1000,1000,1000,1000,1100,950,1150,910,1200][i];
     assert.equal(e.run('player().cash'),expectedCash,`Chance ${i} cash`);
-    if(i===4) assert.equal(e.run('player().position'),0);
-    if(i===5) assert.equal(e.run('state.resolved'),31);
-    if(i===6) {assert.equal(e.run('player().position'),6);assert.equal(e.run('player().turns'),1);}
-    if(i===7) assert.equal(e.run('player().jailPasses'),1);
-    if(i===8) {assert.equal(e.run('player().position'),10);assert.equal(e.run('player().jailed'),true);}
-    if(i===9) assert.equal(e.run('state.resolved'),22);
+    if(i===0) assert.equal(e.run('state.resolved'),31);
+    if(i===1) {assert.equal(e.run('player().position'),6);assert.equal(e.run('player().turns'),1);}
+    if(i===2) assert.equal(e.run('state.resolved'),e.run('properties[12].position'));
+    if(i===3) {assert.equal(e.run('player().position'),10);assert.equal(e.run('player().jailed'),true);}
+    if(i===4) assert.equal(e.run('player().jailPasses'),1);
+    if(i===8) assert.deepEqual(e.plain('state.players.map(p=>p.cash)'),[910,1030,1030,1030]);
+    if(i===9) {assert.equal(e.run('player().position'),0);assert.equal(e.run('player().turns'),1);}
+  }
+});
+test('random Landmark Chance can reach all 24 landmarks and resolves only on arrival',async()=>{
+  for(let index=0;index<24;index++) {
+    const e=engine();
+    e.run(`Math.random=()=>${(index+0.5)/24}; player().position=34; resolveSpace=p=>{state.resolved=p.position;};`);
+    const task=e.run('applyChance(player(),chanceCards[2])');
+    assert.equal(e.run('player().position'),34);
+    assert.equal(e.run('state.resolved'),undefined);
+    await task;
+    assert.equal(e.run('state.resolved'),e.run(`properties[${index}].position`));
+    assert.equal(e.run('player().cash'),1000,'no extra passing-Start bonus on Chance travel');
+  }
+});
+test('random Landmark Chance resumes its saved route without selecting another destination',async()=>{
+  const e=engine();
+  e.run('Math.random=()=>0; player().position=34; resolveSpace=p=>{state.resolved=p.position;}; afterStep=(pending,i)=>{if(i===0){saved=snapshotGame();cancelBoardAnimation();}};');
+  await e.run('applyChance(player(),chanceCards[2])');
+  assert.equal(e.run('saved.state.pending.completion.kind'),'resolve');
+  e.run('state=saved.state; afterStep=null; Math.random=()=>0.999;');
+  await e.run('resumeMovement()');
+  assert.equal(e.run('state.resolved'),1);
+  assert.equal(e.run('player().cash'),1000);
+});
+test('Pay Each Team conserves money, excludes out teams and reports actual transfers',()=>{
+  const e=engine();
+  e.run('cashEffects=[]; window.PUIPresentation={cash:(amount,label,team)=>cashEffects.push({amount,team})}; state.players[2].out=true; applyChance(player(),chanceCards[8]);');
+  assert.deepEqual(e.plain('state.players.map(p=>p.cash)'),[940,1030,1000,1030]);
+  assert.equal(e.run('state.players.reduce((sum,p)=>sum+p.cash,0)'),4000);
+  assert.deepEqual(e.plain('cashEffects'),[{amount:30,team:'Group 2'},{amount:30,team:'Group 4'},{amount:-60,team:'Group 1'}]);
+  assert.equal(e.run('player().turns'),1);
+  for(const balance of [0,20,30,50,60,90]) {
+    const poor=engine(); poor.run(`player().cash=${balance}; applyChance(player(),chanceCards[8]);`);
+    assert.equal(poor.run('state.players.reduce((sum,p)=>sum+p.cash,0)'),3000+balance);
+    assert.ok(poor.plain('state.players.map(p=>p.cash)').every(cash=>cash>=0));
+    assert.equal(poor.run('Boolean(player().out)'),balance<90);
+    assert.equal(poor.run('player().turns'),1);
   }
 });
 test('Transit costs $40 once, arrives directly and ends without station re-resolution',async()=>{
@@ -235,7 +377,7 @@ test('a forced payment beyond cash empties the payer, pays the creditor and puts
   // Tax and a Chance penalty do the same, with no creditor to pay.
   const tax=engine(); tax.run('player().cash=20; player().position=4; resolveSpace(player());');
   assert.equal(tax.run('player().cash'),0); assert.equal(tax.run('player().out'),true);
-  const card=engine(); card.run('player().cash=20; applyChance(player(),chanceCards[1]);');
+  const card=engine(); card.run('player().cash=20; applyChance(player(),chanceCards[6]);');
   assert.equal(card.run('player().cash'),0); assert.equal(card.run('player().out'),true);
 });
 test('no purchase, fare or fee may take a group below zero',()=>{
@@ -272,6 +414,66 @@ test('trading retains captured offering group across turn change and conserves c
   e.run('state.currentPlayer=2;submitTrade({preventDefault(){}});');
   assert.equal(e.run('properties[0].owner'),1); assert.equal(e.run('properties[1].owner'),0); assert.equal(e.run('properties[0].building'),true);
   assert.deepEqual(e.plain('state.players.map(p=>p.cash)'),[940,1060,1000,1000]);
+});
+test('quiet landings hold the active token for two seconds without extra actions or cash changes',()=>{
+  for(const pos of [18,10,1]) {
+    const e=engine(); e.run(`scheduled=[]; setTimeout=(fn,delay)=>{scheduled.push({fn,delay});return scheduled.length;}; player().position=${pos}; if(${pos}===1)properties[0].owner=player().id; resolveSpace(player());`);
+    assert.equal(e.run('scheduled.at(-1).delay'),2000);
+    assert.equal(e.run('state.currentPlayer'),0);
+    assert.equal(e.run('state.phase'),'moving');
+    assert.equal(e.run('player().cash'),1000);
+    assert.equal(e.run('player().jailed'),false);
+    assert.equal(e.run('player().turns'),1);
+    assert.equal(e.run('state.pending.kind'),'turn-end');
+    e.run('endTurn(); chooseSteps(6);');
+    assert.equal(e.run('player().turns'),1,'pause does not allow a duplicate turn');
+    assert.equal(e.run('player().position'),pos);
+    e.run('scheduled.at(-1).fn();');
+    assert.equal(e.run('state.currentPlayer'),1);
+    assert.equal(e.run('state.phase'),'choose');
+  }
+  const normal=engine(); normal.run('scheduled=[];setTimeout=(fn,delay)=>{scheduled.push({fn,delay});return 1;};endTurn();');
+  assert.equal(normal.run('scheduled.at(-1).delay'),2000,'every turn uses the same landing pause');
+});
+test('every final landing keeps the current team until its two-second handoff',async()=>{
+  const cases=[
+    'player().position=0;resolveSpace(player());',
+    'player().position=4;resolveSpace(player());',
+    'player().position=1;showPurchaseDecision(player(),properties[0]);ui.actions[1].action();',
+    'player().position=1;properties[0].owner=1;payRent(player(),properties[0]);',
+    'player().position=1;properties[0].owner=1;winChallenge(player(),properties[0]);',
+    'player().position=2;applyChance(player(),chanceCards[5]);',
+    'player().position=16;showStationDecision(player(),6);ui.actions[0].action();',
+    'await sendToJail(player(),"Go to Jail");',
+    'await applyChance(player(),chanceCards[9]);'
+  ];
+  for(const setup of cases) {
+    const e=engine(); e.run('scheduled=[];setTimeout=(fn,delay)=>{scheduled.push({fn,delay});return scheduled.length;};');
+    await e.run(`(async()=>{${setup}})()`);
+    assert.equal(e.run('state.pending.kind'),'turn-end',setup);
+    assert.equal(e.run('scheduled.at(-1).delay'),2000,setup);
+    assert.equal(e.run('state.currentPlayer'),0,setup);
+    assert.equal(e.run('player().turns'),1,setup);
+    e.run('scheduled.at(-1).fn();');
+    assert.equal(e.run('state.currentPlayer'),1,setup);
+    assert.equal(e.run('state.phase'),'choose',setup);
+  }
+});
+test('quiet landing pauses survive saving and loading with only the remaining delay',async()=>{
+  const e=engine();
+  e.run(`clock=10000; Date.now=()=>clock; scheduled=[];setTimeout=(fn,delay)=>{scheduled.push({fn,delay});return scheduled.length;};
+    player().position=18;resolveSpace(player());cloud=snapshotGame();clock+=500;
+    supabaseClient={from(){return {select(){return {eq(){return {async single(){return {data:{id:'g',name:'Landing pause',game_state:cloud},error:null};}};}};}};}};`);
+  await e.run('loadCloudGame("g")');
+  assert.equal(e.run('scheduled.at(-1).delay'),1500);
+  assert.equal(e.run('state.currentPlayer'),0);
+  assert.equal(e.run('player().turns'),1);
+  e.run('scheduled.at(-1).fn();');
+  assert.equal(e.run('state.currentPlayer'),1);
+});
+test('cancelled quiet landing handoffs cannot change a different game session',()=>{
+  const e=engine(); e.run('scheduled=[];setTimeout=(fn,delay)=>{scheduled.push({fn,delay});return 1;};player().position=10;resolveSpace(player());handoff=scheduled.at(-1).fn;cancelBoardAnimation();state=null;handoff();');
+  assert.equal(e.run('state'),null);
 });
 test('Call Time completes round once, persisted handoff resumes and scores stay correct',()=>{
   const e=engine();e.run('callTime();');

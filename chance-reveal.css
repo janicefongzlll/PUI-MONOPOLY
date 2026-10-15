@@ -1,0 +1,39 @@
+/* A clickable card back only; the existing result dialog and rules remain intact. */
+#decision-dialog.chance-draw {
+  width: min(780px, calc(100vw - 32px)); max-height: calc(100dvh - 32px);
+  padding: 20px; overflow: auto; border: 0; border-radius: 0;
+  background: transparent; box-shadow: none; text-align: center;
+}
+#decision-dialog.chance-draw::backdrop { background: rgba(13, 35, 29, .46); backdrop-filter: blur(2px); }
+.chance-draw .dialog-header { margin: 0 0 10px; justify-content: flex-end; }
+.chance-draw .dialog-icon, .chance-draw .dialog-details { display: none; }
+.chance-draw .close-dialog { color: #2e4638; background: #fff9ec; border-radius: 50%; }
+.chance-draw #dialog-kicker { margin: 0 0 8px; color: #ffdfbb; font-size: clamp(14px, 1.2vw, 20px); letter-spacing: .12em; }
+#decision-dialog.chance-draw h2 { color: #fff9ec; font-size: clamp(34px, 3.5vw, 58px); letter-spacing: .04em; margin: 0 0 8px; }
+.chance-draw .dialog-copy { color: #fff1dd; font-size: clamp(16px, 1.3vw, 23px); }
+.chance-draw .dialog-actions { margin-top: 24px; display: block; perspective: 1000px; }
+#decision-dialog .chance-draw-button {
+  display: flex; align-items: flex-end; justify-content: center;
+  width: 100%; aspect-ratio: 1.85; min-height: 0; padding: 0 12px 20px;
+  border: 9px solid #fff9ec; border-radius: 17px;
+  background: #ef963e url("assets/chance-reveal.svg") center / 100% 100% no-repeat;
+  box-shadow: 0 7px 0 #ae6133, 0 18px 35px #142c3240;
+  color: #3b3e30; font: 800 clamp(16px, 1.4vw, 23px)/1.1 Arial, Helvetica, sans-serif;
+  letter-spacing: .06em; text-transform: uppercase; cursor: pointer;
+  transform: rotate(-1deg); animation: chance-back-enter .32s ease-out both;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+#decision-dialog .chance-draw-button:hover { transform: rotate(0deg) translateY(-5px); box-shadow: 0 10px 0 #ae6133, 0 24px 40px #142c3240; }
+#decision-dialog .chance-draw-button:active { transform: rotate(0deg) scale(.97); }
+#decision-dialog .chance-draw-button:focus-visible { outline: 4px solid #ffe4a0; outline-offset: 7px; }
+#decision-dialog.chance-result { animation: chance-result-enter .32s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes chance-back-enter { from { opacity: 0; transform: translateY(16px) rotate(-3deg) scale(.95); } to { opacity: 1; transform: rotate(-1deg); } }
+@keyframes chance-result-enter { from { opacity: 0; transform: translateY(10px) rotateY(-12deg) scale(.94); } to { opacity: 1; transform: none; } }
+@media (max-width: 600px) {
+  #decision-dialog.chance-draw { padding: 12px; }
+  #decision-dialog .chance-draw-button { border-width: 6px; padding-bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #decision-dialog.chance-result, #decision-dialog .chance-draw-button { animation: none; transition: none; }
+  #decision-dialog .chance-draw-button:hover { transform: none; }
+}
