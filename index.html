@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="PUI Fortune at MJM Line Game Station. A landmark journey for the PUI Groups team building." />
+    <meta name="description" content="PUI Fortune. A landmark board game for the PUI Groups team building." />
     <meta name="theme-color" content="#12384c" />
-    <title>PUI Fortune — MJM Line Game Station</title>
+    <title>PUI FORTUNE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=DM+Mono:wght@400;500&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="rulebook.css?v=6" />
     <link rel="stylesheet" href="chance-reveal.css?v=1" />
     <link rel="stylesheet" href="fullscreen-controls.css?v=1" />
+    <link rel="stylesheet" href="setup-controls.css?v=1" />
+    <link rel="stylesheet" href="game-sidebar.css?v=1" />
   </head>
   <body>
     <a class="skip-link" href="#game-area">Skip to game board</a>
@@ -42,7 +44,7 @@
     <header class="topbar">
       <a class="brand" href="#top" aria-label="PUI Fortune home">
         <span class="brand-mark railway-mark" aria-hidden="true"><svg><use href="#i-train"></use></svg></span>
-        <span class="railway-brand-copy"><strong>PUI FORTUNE<span class="railway-period">.</span></strong><small>MJM LINE / GAME STATION</small></span>
+        <span class="railway-brand-copy"><strong>PUI FORTUNE</strong></span>
       </a>
       <div class="topbar-actions">
         <button class="text-button" id="games-button" type="button" hidden>My games</button>
@@ -55,12 +57,9 @@
     <main id="game-area">
       <section class="auth-screen hidden" id="auth-screen" aria-labelledby="auth-title">
         <div class="setup-copy">
-          <p class="eyebrow">PUI GROUPS · 3RD TEAM BUILDING</p>
-          <h1 id="auth-title">GAME<br />STATION<span class="railway-period">.</span></h1>
-          <p class="railway-route" aria-label="MJM Central to Game Station"><span>MJM CENTRAL</span><i aria-hidden="true"></i><span>GAME STATION</span></p>
+          <h1 id="auth-title">PUI<br />FORTUNE</h1>
         </div>
         <form class="setup-card auth-card" id="auth-form">
-          <div class="setup-card-heading"><p class="eyebrow">MJM LINE / GAME STATION</p><h2>Welcome to Game Station</h2></div>
           <label class="name-field"><span>Email</span><input id="auth-email" type="email" autocomplete="email" required placeholder="you@example.com" /></label>
           <label class="name-field"><span>Password</span><input id="auth-password" type="password" autocomplete="current-password" required minlength="6" placeholder="At least 6 characters" /></label>
           <button class="primary-button setup-submit" type="submit"><span id="auth-submit-label">Sign in</span><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>
@@ -70,7 +69,7 @@
       </section>
 
       <section class="lobby-screen hidden" id="lobby-screen" aria-labelledby="lobby-title">
-        <div class="lobby-heading"><div><p class="eyebrow">MJM LINE / YOUR JOURNEYS</p><h1 id="lobby-title">Game Station<span class="railway-period">.</span></h1><p id="account-email" class="intro"></p></div><div class="lobby-actions"><button class="outline-button" id="sign-out-button" type="button">Sign out</button><button class="primary-button" id="new-game-button" type="button">Start a new journey</button></div></div>
+        <div class="lobby-heading"><div><h1 id="lobby-title">PUI FORTUNE</h1><p id="account-email" class="intro"></p></div><div class="lobby-actions"><button class="outline-button" id="sign-out-button" type="button">Sign out</button><button class="primary-button" id="new-game-button" type="button">Start a new journey</button></div></div>
         <div class="library-tabs" role="tablist" aria-label="Saved games">
           <button class="library-tab is-selected" id="tab-active" type="button" role="tab" aria-selected="true">Active</button>
           <button class="library-tab" id="tab-complete" type="button" role="tab" aria-selected="false">Completed</button>
@@ -80,18 +79,11 @@
 
       <section class="setup-screen" id="setup-screen" aria-labelledby="setup-title">
         <div class="setup-copy">
-          <p class="eyebrow">MJM LINE / GAME STATION</p>
-          <h1 id="setup-title">YOUR NEXT<br />ADVENTURE<span class="railway-period">.</span></h1>
-          <p class="intro">Explore the world’s landmarks. Make your move, challenge your rivals, and build your team’s fortune.</p>
-          <p class="railway-route"><span>ALL ABOARD</span><i aria-hidden="true"></i><span>PUI FORTUNE</span></p>
+          <h1 id="setup-title">PUI<br />FORTUNE</h1>
         </div>
 
         <form class="setup-card" id="setup-form">
-          <div class="setup-card-heading">
-            <p class="eyebrow">DEPARTURE / TEAM CHECK-IN</p>
-            <h2>Who’s coming aboard?</h2>
-          </div>
-          <label class="name-field"><span>Game name</span><input id="game-name" maxlength="48" value="My world tour" aria-label="Game name" /></label>
+          <input id="game-name" type="hidden" value="PUI Fortune" />
           <fieldset class="group-count">
             <legend>Number of teams</legend>
             <div class="segment-control" role="radiogroup" aria-label="Number of teams">
@@ -102,7 +94,6 @@
           </fieldset>
           <div class="player-name-fields" id="player-name-fields"></div>
           <button class="primary-button setup-submit" type="submit"><span>All aboard — start game</span><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>
-          <p class="setup-note">Every team boards with <strong>$1,000</strong>.</p>
         </form>
       </section>
 
@@ -138,8 +129,8 @@
 
           <aside class="game-sidebar" aria-label="Game controls and team ledger">
             <section class="turn-card panel">
-              <div class="turn-card-top"><p class="eyebrow">Next stop / your move</p><span class="turn-badge" id="turn-badge">CHOOSE</span></div>
-              <div class="turn-prompt turn-prompt-wide" id="turn-prompt"><strong>Choose your movement.</strong><span>Click your animal on the board, then select 1–6 steps.</span></div>
+              <span class="turn-badge" id="turn-badge" hidden>CHOOSE</span>
+              <div class="turn-prompt turn-prompt-wide" id="turn-prompt"></div>
               <div class="turn-actions" id="turn-actions">
                 <button class="primary-button" id="choose-steps-button" type="button"><span>Choose steps</span></button>
               </div>
@@ -386,7 +377,7 @@
     <script src="purchase-sound.js?v=3"></script>
     <script src="purchase-effects.js"></script>
     <script src="presentation-effects.js"></script>
-    <script src="app.js?v=group-one-jail-pass-1"></script>
+    <script src="app.js?v=persistent-fullscreen-1"></script>
     <script src="rulebook.js?v=12"></script>
       <div class="space-tip" id="space-tip" role="tooltip" hidden></div>
   </body>

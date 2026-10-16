@@ -268,6 +268,7 @@ test('new games give only Group 1 one Jail Pass, which is usable and not duplica
   e.run(`enterGameFullscreen=runBoardIntro=()=>{};
     document.querySelectorAll=selector=>selector==='.name-input'?[{value:'Team A'},{value:'Team B'},{value:'Team C'},{value:'Team D'}]:selector==='.avatar-picker'?Array.from({length:4},(_,id)=>({querySelector:()=>({value:String(id)})})):[];`);
   await e.run('startGame({preventDefault(){}})');
+  assert.deepEqual(e.plain('state.players.map(p=>p.name)'),['Froggy','Monkey','Wolfy','Horsey']);
   assert.deepEqual(e.plain('state.players.map(p=>p.jailPasses)'),[1,0,0,0]);
   assert.deepEqual(e.plain('state.players.map(p=>p.cash)'),[1000,1000,1000,1000]);
   e.run('player().jailed=true;showJailDecision();ui.actions[1].action();');
@@ -277,6 +278,31 @@ test('new games give only Group 1 one Jail Pass, which is usable and not duplica
   e.run(`cloud=snapshotGame();supabaseClient={from(){return {select(){return {eq(){return {async single(){return {data:{id:'g',name:'Jail Pass used',game_state:cloud},error:null};}};}};}};}};`);
   await e.run('loadCloudGame("g")');
   assert.deepEqual(e.plain('state.players.map(p=>p.jailPasses)'),[0,0,0,0]);
+});
+test('setup has no naming inputs and animal choices stay unique with matching automatic names',async()=>{
+  const e=engine(); e.run('renderNameFields(4);');
+  const markup=e.element('player-name-fields').innerHTML;
+  assert.ok(!markup.includes('name-input') && !markup.includes('name-field'));
+  for(const name of ['Froggy','Monkey','Wolfy','Horsey']) assert.ok(markup.includes(name));
+  assert.equal((markup.match(/type="radio"/g)||[]).length,16);
+  e.run(`
+    groups=playerAnimals.map((animal,index)=>{
+      const radios=playerAnimals.map((_,id)=>({value:String(id),selected:id===index}));
+      radios.forEach(radio=>Object.defineProperty(radio,'checked',{get(){return radio.selected;},set(value){if(value)radios.forEach(item=>item.selected=false);radio.selected=value;}}));
+      const label={textContent:''};
+      return {radios,label,addEventListener(name,handler){this.handler=handler;},
+        querySelector(selector){return selector==='input:checked'?radios.find(radio=>radio.checked):radios[Number(selector.match(/value="(\\d+)"/)[1])];},
+        closest(){return {querySelector:()=>label};}};
+    });
+    document.querySelectorAll=selector=>selector==='.avatar-picker'?groups:[];
+    bindAvatarPicker();groups[0].radios[2].checked=true;groups[0].handler({target:{value:'2'}});
+  `);
+  assert.deepEqual(e.plain('groups.map(g=>g.label.textContent)'),['Wolfy','Monkey','Froggy','Horsey']);
+  e.run('enterGameFullscreen=runBoardIntro=()=>{};');
+  await e.run('startGame({preventDefault(){}})');
+  assert.deepEqual(e.plain('state.players.map(p=>p.name)'),['Wolfy','Monkey','Froggy','Horsey']);
+  assert.deepEqual(e.plain('state.players.map(p=>p.animal.art)'),['wolf','monkey','frog','horse']);
+  assert.equal(e.run('state.gameName'),'PUI Fortune');
 });
 test('Chance click reveals the selected card once and only Resolve applies its effect',()=>{
   const e=engine(); e.run('Math.random=()=>0.55; drawChance(player()); reveal=ui.actions[0].action; Math.random=()=>{throw new Error("Reveal must never reroll");};');

@@ -1,0 +1,65 @@
+/* Presentation only: larger event-screen ledger and a quieter movement card. */
+@media (min-width: 1001px) {
+  #play-screen .game-layout {
+    grid-template-columns: minmax(0, 1fr) clamp(340px, 25vw, 400px);
+  }
+}
+
+#play-screen .turn-card,
+#play-screen .city-ledger { padding: 22px; }
+
+#turn-badge[hidden] { display: none; }
+#play-screen .turn-prompt { margin: 0 0 16px; min-height: 0; }
+#play-screen .move-team { display: flex; align-items: center; gap: 16px; }
+#play-screen .move-team .avatar-inline {
+  flex: none;
+  width: 76px;
+  height: 76px;
+  border-radius: 18px;
+  background-color: #fff;
+}
+#play-screen .move-team-name {
+  color: var(--rail-navy);
+  font: 800 30px/1.15 var(--rail-body);
+  overflow-wrap: anywhere;
+}
+#play-screen .turn-actions .primary-button {
+  min-height: 62px;
+  gap: 12px;
+  padding: 14px 16px;
+  font-size: 21px;
+}
+#choose-steps-button svg { width: 24px; height: 24px; flex: none; }
+
+#play-screen .city-ledger .panel-heading h2 { font-size: 32px; }
+#play-screen .city-ledger .panel-heading .eyebrow { font-size: 12px; }
+#play-screen .player-list { margin-top: 18px; }
+#play-screen .player-row {
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 16px 0;
+}
+#play-screen .player-row.active { margin-inline: -8px; padding-inline: 8px; }
+#play-screen .player-avatar { width: 52px; height: 52px; }
+#play-screen .player-name { font-size: 24px; line-height: 1.2; }
+#play-screen .player-cash { font: 800 24px/1.2 var(--rail-body); white-space: nowrap; }
+#play-screen .player-portfolio {
+  margin-top: 5px;
+  font: 600 14px/1.4 var(--rail-body);
+  overflow-wrap: anywhere;
+}
+#play-screen .turn-spotlight { gap: 16px; margin-top: 18px; padding: 16px; }
+#play-screen .spotlight-avatar { width: 84px; height: 84px; }
+#play-screen .spotlight-text .eyebrow { font-size: 11px; letter-spacing: .1em; }
+#play-screen .spotlight-text strong { margin-top: 5px; font-size: 29px; }
+#play-screen .spotlight-text span { font-size: 13px; }
+
+@media (min-width: 601px) and (max-width: 1000px) {
+  #play-screen .game-sidebar { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  #play-screen .turn-card, #play-screen .city-ledger { padding: 18px; }
+  #play-screen .player-row { gap: 10px; }
+  #play-screen .player-name, #play-screen .player-cash { font-size: 22px; }
+  #play-screen .turn-spotlight { display: flex; }
+}

@@ -114,6 +114,7 @@ const playerAnimals = [
   { icon: "🐺", name: "Wolf", art: "wolf", pip: "cheese" },
   { icon: "🐴", name: "Horse", art: "horse", pip: "hat" }
 ];
+const animalTeamNames = { frog: "Froggy", monkey: "Monkey", wolf: "Wolfy", horse: "Horsey" };
 
 const avatarArt = (animal, extra = "") => `<i class="avatar-art avatar-${animal.art || "snake"} ${extra}" aria-hidden="true"></i>`;
 const chanceCards = [
@@ -286,6 +287,8 @@ async function enterGameFullscreen(reportErrors = false) {
 }
 
 async function exitGameFullscreen(reportErrors = false) {
+  // Only the explicit full-screen toggle calls this. Screen changes, saves and
+  // game resets must not undo the operator's presentation mode.
   if (!gameFullscreenElement()) return;
   try {
     if (document.exitFullscreen) await document.exitFullscreen();
@@ -377,16 +380,20 @@ function bindAvatarPicker() {
     const chosen = Number(event.target.value);
     const picks = groups.map(g => Number(g.querySelector("input:checked").value));
     const clash = picks.findIndex((value, other) => other !== index && value === chosen);
-    if (clash === -1) return;
-    const taken = new Set(picks.filter((_, other) => other !== clash));
-    const free = playerAnimals.findIndex((_, idx) => !taken.has(idx));
-    const radio = groups[clash].querySelector(`input[value="${free}"]`);
-    if (radio) radio.checked = true;
+    if (clash !== -1) {
+      const taken = new Set(picks.filter((_, other) => other !== clash));
+      const free = playerAnimals.findIndex((_, idx) => !taken.has(idx));
+      const radio = groups[clash].querySelector(`input[value="${free}"]`);
+      if (radio) radio.checked = true;
+    }
+    groups.forEach(g => {
+      const animal = playerAnimals[Number(g.querySelector("input:checked").value)];
+      g.closest(".group-setup").querySelector(".team-animal-name").textContent = animalTeamNames[animal.art];
+    });
   }));
 }
 
 function renderNameFields(count) {
-  const names = [...document.querySelectorAll(".name-input")].map(input => input.value);
   const previous = [...document.querySelectorAll(".avatar-picker")].map(g => Number(g.querySelector("input:checked").value));
   const picks = [];
   for (let i = 0; i < count; i++) {
@@ -394,7 +401,7 @@ function renderNameFields(count) {
     picks.push(picks.includes(wanted) ? playerAnimals.findIndex((_, idx) => !picks.includes(idx)) : wanted);
   }
   $("player-name-fields").innerHTML = Array.from({ length: count }, (_, i) => `<div class="group-setup">
-      <label class="name-field"><span>Team ${i + 1}</span><input class="name-input" maxlength="22" value="${escapeHtml(names[i] || `Group ${i + 1}`)}" aria-label="Name for team ${i + 1}" /></label>
+      <strong class="team-setup-label">Team ${i + 1} · <span class="team-animal-name">${animalTeamNames[playerAnimals[picks[i]].art]}</span></strong>
       <div class="avatar-picker" role="radiogroup" aria-label="Avatar for group ${i + 1}">${playerAnimals.map((animal, idx) => `<label class="avatar-option"><input type="radio" name="avatar-${i}" value="${idx}" aria-label="${animal.name}"${picks[i] === idx ? " checked" : ""} /><span>${avatarArt(animal)}</span></label>`).join("")}</div>
     </div>`).join("");
   bindAvatarPicker();
@@ -404,9 +411,9 @@ async function startGame(event) {
   event.preventDefault();
   cancelBoardAnimation();
   enterGameFullscreen();
-  const names = [...document.querySelectorAll(".name-input")].map((input, i) => input.value.trim() || `Group ${i + 1}`);
   const chosen = [...document.querySelectorAll(".avatar-picker")].map(g => playerAnimals[Number(g.querySelector("input:checked").value)]);
-  const gameName = $("game-name").value.trim() || "My world tour";
+  const names = chosen.map(animal => animalTeamNames[animal.art]);
+  const gameName = $("game-name").value.trim() || "PUI Fortune";
   properties.forEach(p => { p.owner = null; p.building = false; });
   state = { gameId: null, gameName, players: names.map((name, id) => ({ id, name, color: playerColors[id], animal: chosen[id] || playerAnimals[id], cash: 1000, position: 0, jailed: false, jailPasses: id === 0 ? 1 : 0, turns: 0, out: false })), currentPlayer: 0, round: 1, phase: "choose", activity: ["The city is open. Every group begins with $1,000.", `${names[0]} begins with 1 Jail Pass.`], finishAfterRound: false, pending: null, lastChanceCard: null };
   $("setup-screen").classList.add("hidden");
@@ -423,7 +430,6 @@ function resetGame() {
   cancelBoardAnimation();
   window.PUIOpeningBgm?.stop?.();
   resetSync();
-  exitGameFullscreen();
   state = null;
   ["decision-dialog", "country-quiz-dialog", "rules-dialog", "trade-dialog", "log-dialog", "end-dialog", "results-dialog"].forEach(id => { if ($(id).open) $(id).close(); });
   $("play-screen").classList.add("hidden");
@@ -434,13 +440,12 @@ function showSetup() {
   cancelBoardAnimation();
   window.PUIOpeningBgm?.stop?.();
   resetSync();
-  exitGameFullscreen();
   state = null;
   $("auth-screen").classList.add("hidden");
   $("lobby-screen").classList.add("hidden");
   $("play-screen").classList.add("hidden");
   $("setup-screen").classList.remove("hidden");
-  $("game-name").value = "My world tour";
+  $("game-name").value = "PUI Fortune";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -529,7 +534,6 @@ async function returnToLobby() {
   if (state?.gameId && !(await saveGame(false)) && !window.confirm("This game has changes that have not synced yet. Leave anyway?")) return;
   cancelBoardAnimation();
   resetSync();
-  exitGameFullscreen();
   state = null;
   showLobby();
 }
@@ -835,10 +839,10 @@ function renderTurn() {
   const prompt = $("turn-prompt"), actions = $("turn-actions"), badge = $("turn-badge");
   badge.textContent = state.phase.toUpperCase();
   if (state.phase === "choose") {
-    prompt.innerHTML = `<strong>${avatarArt(p.animal, "avatar-inline")} ${escapeHtml(p.name)}, choose your move.</strong><span>Click your ${p.animal.name} token on the board, then select 1–6 steps.</span>`;
+    prompt.innerHTML = `<strong class="move-team">${avatarArt(p.animal, "avatar-inline")}<span class="move-team-name">${escapeHtml(p.name)}</span></strong>`;
     const here = spaces[p.position];
     const canUpgrade = isProperty(here) && here.owner === p.id && !here.building && p.cash >= buildingCost(here);
-    actions.innerHTML = `<button class="primary-button" id="choose-steps-button" type="button"><span>Choose 1–6 steps</span></button>${canUpgrade ? `<button class="outline-button" id="develop-button" type="button">Upgrade ${escapeHtml(here.name)} · ${money(buildingCost(here))}</button>` : ""}`;
+    actions.innerHTML = `<button class="primary-button" id="choose-steps-button" type="button"><span>Choose 1–6 steps</span><svg aria-hidden="true"><use href="#i-arrow"></use></svg></button>${canUpgrade ? `<button class="outline-button" id="develop-button" type="button">Upgrade ${escapeHtml(here.name)} · ${money(buildingCost(here))}</button>` : ""}`;
     $("choose-steps-button").addEventListener("click", openStepChooser);
     if (canUpgrade) $("develop-button").addEventListener("click", () => developProperty(here));
   } else if (state.phase === "decision") {

@@ -29,7 +29,7 @@ function fixture(kind = 'standard') {
   vm.runInContext(source, context);
   vm.runInContext('renderNameFields=initSpaceTips=configureSupabase=()=>{};toast=message=>messages.push(message);init();', context);
   return { document, calls, messages, classes, button: node('fullscreen-button'), label: node('fullscreen-label'), icon: node('fullscreen-icon'),
-    click: () => node('fullscreen-button').handlers.click(), fire: name => events.get(name)?.(), run: code => vm.runInContext(code, context) };
+    click: () => node('fullscreen-button').handlers.click(), fire: name => events.get(name)?.(), run: code => vm.runInContext(code, context), node };
 }
 
 (async () => {
@@ -75,4 +75,42 @@ function fixture(kind = 'standard') {
   await second; release(); await first;
   assert.equal(busy.button.disabled, false);
   console.log('PASS repeated clicks are locked while a full-screen request is pending');
+
+  const persistent = fixture();
+  persistent.run('cancelBoardAnimation=()=>{}; window.scrollTo=()=>{}; renderGameLibrary=async()=>{};');
+  await persistent.click();
+  for (const action of ['showSetup()', 'resetGame()', 'prepareNewGame()']) {
+    await persistent.run(action);
+    assert.equal(persistent.document.fullscreenElement, persistent.document.documentElement, `${action} preserves full screen`);
+    assert.equal(persistent.label.textContent, 'Exit full screen');
+  }
+  persistent.run('supabaseClient={}; authUser={email:"test@example.com"};');
+  await persistent.run('returnToLobby()');
+  assert.equal(persistent.document.fullscreenElement, persistent.document.documentElement);
+  assert.equal(persistent.node('account-email').textContent, 'test@example.com');
+  assert.deepEqual(persistent.calls.map(call => call[0]), ['enter']);
+  await persistent.click();
+  assert.equal(persistent.document.fullscreenElement, null);
+  assert.deepEqual(persistent.calls.map(call => call[0]), ['enter', 'exit']);
+  console.log('PASS full screen persists across setup, reset, new game and lobby until explicitly exited');
+
+  const preservedSafari = fixture('webkit');
+  preservedSafari.run('cancelBoardAnimation=()=>{}; window.scrollTo=()=>{};');
+  await preservedSafari.click(); preservedSafari.run('showSetup(); resetGame();');
+  assert.equal(preservedSafari.document.webkitFullscreenElement, preservedSafari.document.documentElement);
+  assert.deepEqual(preservedSafari.calls, [['enter']]);
+  console.log('PASS Safari full screen also survives screen transitions');
+
+  // A background retry would fight intentional Escape/native exits and can be
+  // blocked by the browser's user-gesture policy. Never force re-entry.
+  const escaped = fixture(); await escaped.click();
+  escaped.document.fullscreenElement = null; escaped.fire('fullscreenchange');
+  await Promise.resolve();
+  assert.deepEqual(escaped.calls.map(call => call[0]), ['enter']);
+  assert.equal(escaped.label.textContent, 'Enter full screen');
+  console.log('PASS native exits remain respected without trapping or automatic re-entry');
+
+  assert.equal((source.match(/await exitGameFullscreen\(true\)/g) || []).length, 1);
+  assert.ok(!/\n\s*exitGameFullscreen\(\);/.test(source));
+  console.log('PASS only the explicit toggle can request a programmatic full-screen exit');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1,0 +1,9 @@
+/* Larger animal choices without editable naming fields. */
+#setup-form #player-name-fields { grid-template-columns: 1fr; gap: 16px; }
+#setup-form .group-setup { min-width: 0; gap: 8px; }
+.team-setup-label { color: var(--rail-navy, #12384c); font-size: 14px; font-weight: 700; }
+#setup-form .avatar-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+#setup-form .avatar-option { min-width: 0; }
+#setup-form .avatar-option span { width: 100%; height: clamp(60px, 5vw, 78px); border-radius: 14px; }
+#setup-form .avatar-option input:checked + span { border-width: 3px; }
+#setup-form .setup-submit { width: 100%; }
