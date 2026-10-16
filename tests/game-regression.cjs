@@ -263,6 +263,21 @@ test('starting a completely new game resets Chance history',async()=>{
   e.run('Math.random=()=>0.85; drawChance(player());');
   assert.equal(e.run('state.lastChanceCard'),8,'the previous game does not exclude any card');
 });
+test('new games give only Group 1 one Jail Pass, which is usable and not duplicated on reload',async()=>{
+  const e=engine();
+  e.run(`enterGameFullscreen=runBoardIntro=()=>{};
+    document.querySelectorAll=selector=>selector==='.name-input'?[{value:'Team A'},{value:'Team B'},{value:'Team C'},{value:'Team D'}]:selector==='.avatar-picker'?Array.from({length:4},(_,id)=>({querySelector:()=>({value:String(id)})})):[];`);
+  await e.run('startGame({preventDefault(){}})');
+  assert.deepEqual(e.plain('state.players.map(p=>p.jailPasses)'),[1,0,0,0]);
+  assert.deepEqual(e.plain('state.players.map(p=>p.cash)'),[1000,1000,1000,1000]);
+  e.run('player().jailed=true;showJailDecision();ui.actions[1].action();');
+  assert.equal(e.run('player().jailed'),false);
+  assert.equal(e.run('player().jailPasses'),0);
+  assert.equal(e.run('player().cash'),1000);
+  e.run(`cloud=snapshotGame();supabaseClient={from(){return {select(){return {eq(){return {async single(){return {data:{id:'g',name:'Jail Pass used',game_state:cloud},error:null};}};}};}};}};`);
+  await e.run('loadCloudGame("g")');
+  assert.deepEqual(e.plain('state.players.map(p=>p.jailPasses)'),[0,0,0,0]);
+});
 test('Chance click reveals the selected card once and only Resolve applies its effect',()=>{
   const e=engine(); e.run('Math.random=()=>0.55; drawChance(player()); reveal=ui.actions[0].action; Math.random=()=>{throw new Error("Reveal must never reroll");};');
   assert.equal(e.run('ui.title'),'CHANCE');
