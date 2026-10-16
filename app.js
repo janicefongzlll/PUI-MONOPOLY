@@ -252,17 +252,58 @@ function setSync(kind, detail) {
 
 function canSync() { return Boolean(supabaseClient && authUser && state?.gameId); }
 
-function enterGameFullscreen() {
-  const root = document.documentElement;
-  if (document.fullscreenElement || !root.requestFullscreen) return;
-  const request = root.requestFullscreen({ navigationUI: "hide" });
-  if (request?.catch) request.catch(() => {});
+let fullscreenBusy = false;
+
+function gameFullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
 }
 
-function exitGameFullscreen() {
-  if (!document.fullscreenElement || !document.exitFullscreen) return;
-  const exit = document.exitFullscreen();
-  if (exit?.catch) exit.catch(() => {});
+function syncFullscreenButton() {
+  const active = Boolean(gameFullscreenElement());
+  document.body.classList.toggle("is-fullscreen", active);
+  const button = $("fullscreen-button");
+  if (!button) return;
+  const supported = Boolean((document.fullscreenEnabled !== false && document.documentElement.requestFullscreen) || document.documentElement.webkitRequestFullscreen);
+  const label = active ? "Exit full screen" : "Enter full screen";
+  button.disabled = fullscreenBusy || (!active && !supported);
+  button.setAttribute("aria-pressed", String(active));
+  button.setAttribute("aria-label", label);
+  button.title = supported || active ? label : "Full screen is not supported in this browser";
+  $("fullscreen-label").textContent = label;
+  $("fullscreen-icon").setAttribute("href", active ? "#i-fullscreen-exit" : "#i-fullscreen-enter");
+}
+
+async function enterGameFullscreen(reportErrors = false) {
+  const root = document.documentElement;
+  if (gameFullscreenElement()) return;
+  try {
+    if (root.requestFullscreen && document.fullscreenEnabled !== false) await root.requestFullscreen({ navigationUI: "hide" });
+    else if (root.webkitRequestFullscreen) await root.webkitRequestFullscreen();
+    else if (reportErrors) toast("Full screen is not supported in this browser.");
+  } catch (error) {
+    if (reportErrors) toast("Couldn’t enter full screen. Please try again in your browser.");
+  } finally { syncFullscreenButton(); }
+}
+
+async function exitGameFullscreen(reportErrors = false) {
+  if (!gameFullscreenElement()) return;
+  try {
+    if (document.exitFullscreen) await document.exitFullscreen();
+    else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+    else if (reportErrors) toast("Press Escape to exit full screen.");
+  } catch (error) {
+    if (reportErrors) toast("Couldn’t exit full screen. You can press Escape instead.");
+  } finally { syncFullscreenButton(); }
+}
+
+async function toggleGameFullscreen() {
+  if (fullscreenBusy) return;
+  fullscreenBusy = true;
+  syncFullscreenButton();
+  try {
+    if (gameFullscreenElement()) await exitGameFullscreen(true);
+    else await enterGameFullscreen(true);
+  } finally { fullscreenBusy = false; syncFullscreenButton(); }
 }
 
 function resetSync() { clearTimeout(saveTimer); clearTimeout(retryTimer); saveTimer = null; retryTimer = null; retryDelay = 0; saveDirty = false; saveInFlight = false; saveStatus = "active"; }
@@ -292,6 +333,7 @@ function init() {
   document.querySelectorAll('input[name="count"]').forEach(input => input.addEventListener("change", () => renderNameFields(Number(input.value))));
   $("setup-form").addEventListener("submit", startGame);
   $("rules-button").addEventListener("click", () => $("rules-dialog").showModal());
+  $("fullscreen-button").addEventListener("click", toggleGameFullscreen);
   $("log-button").addEventListener("click", () => $("log-dialog").showModal());
   document.querySelectorAll(".close-log").forEach(button => button.addEventListener("click", () => $("log-dialog").close()));
   document.querySelectorAll(".close-rules").forEach(button => button.addEventListener("click", () => $("rules-dialog").close()));
@@ -318,7 +360,9 @@ function init() {
   $("tab-complete").addEventListener("click", () => setLibraryTab("complete"));
   $("save-game-button").addEventListener("click", () => saveGame(true));
   [$("rules-dialog"), $("trade-dialog"), $("log-dialog"), $("results-dialog")].forEach(dialog => dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); }));
-  document.addEventListener("fullscreenchange", () => document.body.classList.toggle("is-fullscreen", Boolean(document.fullscreenElement)));
+  document.addEventListener("fullscreenchange", syncFullscreenButton);
+  document.addEventListener("webkitfullscreenchange", syncFullscreenButton);
+  syncFullscreenButton();
   window.addEventListener("offline", () => { if (canSync()) setSync("offline"); });
   window.addEventListener("online", () => { if (!canSync()) return; retryDelay = 0; if (saveDirty) saveGame(false); else setSync("saved"); });
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && saveDirty) saveGame(false); });

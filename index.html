@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="railway-theme.css?v=mjm-line-1" />
     <link rel="stylesheet" href="rulebook.css?v=6" />
     <link rel="stylesheet" href="chance-reveal.css?v=1" />
+    <link rel="stylesheet" href="fullscreen-controls.css?v=1" />
   </head>
   <body>
     <a class="skip-link" href="#game-area">Skip to game board</a>
@@ -28,6 +29,8 @@
       <symbol id="i-build" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13M8 21v-6h8v6M8 10h.01M12 10h.01M16 10h.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 11v5m0-8v.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
       <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="i-fullscreen-enter" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-fullscreen-exit" viewBox="0 0 24 24"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="pip-grass" viewBox="0 0 24 24"><path d="M12 19v-6M12 19c0-4.5 1.6-7.5 4.3-9.4M12 19c0-5-1.6-8.2-4.3-10.2" fill="none" stroke="#4f9c3a" stroke-width="2.4" stroke-linecap="round"/><path d="M4.5 19.5h15" stroke="#356b28" stroke-width="2.2" stroke-linecap="round"/></symbol>
       <symbol id="pip-banana" viewBox="0 0 24 24"><path d="M5.6 4.6c-1.2 8.4 4.2 14.6 12.1 14.6 1.6 0 2.2-1.5 1-2.2-5.1-1.2-8.2-5.3-8.2-11.3 0-1.5-1.5-2.1-2.8-2.1-1 0-2 .4-2.1 1z" fill="#f5cf3f" stroke="#3f320f" stroke-width="1.6" stroke-linejoin="round"/><path d="M5.6 4.6 5 2.8" stroke="#3f320f" stroke-width="1.6" stroke-linecap="round"/></symbol>
       <symbol id="pip-cheese" viewBox="0 0 24 24"><path d="M2.8 17.4 20 8.4v9H2.8z" fill="#f5c542" stroke="#4a3a0d" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="14.4" r="1.4" fill="#d09a12"/><circle cx="13.6" cy="13.2" r="1" fill="#d09a12"/><circle cx="16.8" cy="15.4" r="0.9" fill="#d09a12"/></symbol>
@@ -43,6 +46,7 @@
       </a>
       <div class="topbar-actions">
         <button class="text-button" id="games-button" type="button" hidden>My games</button>
+        <button class="text-button fullscreen-toggle" id="fullscreen-button" type="button" aria-label="Enter full screen" aria-pressed="false" title="Enter full screen"><svg aria-hidden="true"><use id="fullscreen-icon" href="#i-fullscreen-enter"></use></svg><span id="fullscreen-label">Enter full screen</span></button>
         <button class="text-button" id="rules-button" type="button"><svg aria-hidden="true"><use href="#i-info"></use></svg> Rules</button>
         <button class="text-button" id="reset-button" type="button">New game</button>
       </div>
@@ -382,7 +386,7 @@
     <script src="purchase-sound.js?v=3"></script>
     <script src="purchase-effects.js"></script>
     <script src="presentation-effects.js"></script>
-    <script src="app.js?v=all-landings-1"></script>
+    <script src="app.js?v=fullscreen-toggle-1"></script>
     <script src="rulebook.js?v=12"></script>
       <div class="space-tip" id="space-tip" role="tooltip" hidden></div>
   </body>

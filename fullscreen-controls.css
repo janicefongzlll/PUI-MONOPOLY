@@ -1,0 +1,9 @@
+.topbar-actions .fullscreen-toggle { min-height: 44px; border: 1px solid var(--rail-border, #cbd9d9); background: var(--rail-pearl, #f7fbff); white-space: nowrap; flex-shrink: 0; }
+.fullscreen-toggle[aria-pressed="true"] { color: var(--rail-navy, #12384c); background: #e1ece7; }
+.fullscreen-toggle:focus-visible { outline: 3px solid var(--rail-teal, #426f72); outline-offset: 3px; }
+.fullscreen-toggle:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 720px) {
+  .topbar-actions .fullscreen-toggle { width: 44px; padding: 10px; justify-content: center; }
+  .fullscreen-toggle svg { width: 21px; height: 21px; flex-shrink: 0; }
+  #fullscreen-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
